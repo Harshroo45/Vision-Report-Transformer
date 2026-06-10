@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vision Infra · Rental Report Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy:#0e2a43; --navy-700:#163a5c; --steel:#2f6db0; --steel-light:#e8f1fb;
+    --amber:#f59e0b; --amber-soft:#fef3e2;
+    --ink:#13212e; --muted:#5b6b79; --hint:#8a98a4;
+    --line:#e3e8ee; --surface:#ffffff; --canvas:#f4f6f9;
+    --green:#1d9e75; --red:#d8504c;
+    --radius:14px; --shadow:0 1px 2px rgba(16,32,48,.06), 0 6px 18px rgba(16,32,48,.06);
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+
+  header.topbar{background:var(--navy);color:#fff;position:sticky;top:0;z-index:50;box-shadow:0 1px 0 rgba(255,255,255,.06)}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--steel),var(--amber));display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;letter-spacing:.5px}
+  .brand b{font-size:16px;font-weight:700;letter-spacing:.2px}
+  .brand span{display:block;font-size:11px;color:#9fb6cc;font-weight:500;letter-spacing:.4px;text-transform:uppercase}
+  .topbar .actions{display:flex;gap:10px}
+  .btn{font-family:var(--font);font-size:13.5px;font-weight:600;border:none;border-radius:9px;padding:9px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-amber{background:var(--amber);color:#3a2700}
+  .btn-amber:hover:not(:disabled){background:#ffb12e}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover:not(:disabled){background:#23b485}
+  .btn-ghost{background:rgba(255,255,255,.1);color:#fff}
+  .btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.2)}
+  .btn-line{background:#fff;color:var(--navy);border:1px solid var(--line)}
+  .btn-line:hover:not(:disabled){border-color:var(--steel);color:var(--steel)}
+
+  main{padding:26px 0 60px}
+  .drop{background:var(--surface);border:2px dashed #cfd8e2;border-radius:var(--radius);padding:54px 30px;text-align:center;transition:.18s;cursor:pointer}
+  .drop.drag{border-color:var(--steel);background:var(--steel-light)}
+  .drop .ic{width:62px;height:62px;border-radius:50%;background:var(--steel-light);display:grid;place-items:center;margin:0 auto 16px}
+  .drop .ic svg{width:28px;height:28px;stroke:var(--steel)}
+  .drop h2{font-size:20px;font-weight:700;margin-bottom:6px}
+  .drop p{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .drop small{display:block;color:var(--hint);font-size:12px;margin-top:14px;max-width:680px;margin-left:auto;margin-right:auto}
+  .intro{text-align:center;margin-bottom:22px}
+  .intro h1{font-size:26px;font-weight:800;letter-spacing:-.3px}
+  .intro p{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .modes{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:18px 0 4px}
+  .mode{display:flex;gap:9px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:12.5px;color:var(--muted);max-width:300px;text-align:left}
+  .mode b{color:var(--ink);font-weight:700;display:block;font-size:13px}
+  .mode .n{width:24px;height:24px;border-radius:7px;background:var(--steel-light);color:var(--steel);font-weight:800;display:grid;place-items:center;flex:none;font-size:12px}
+
+  .alert{border-radius:11px;padding:13px 16px;font-size:13.5px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+  .alert.err{background:#fdeceb;color:#8c2b27;border:1px solid #f6c9c6}
+  .alert.ok{background:#e7f6f0;color:#0f5e45;border:1px solid #b8e6d4}
+  .alert.info{background:var(--steel-light);color:#13456f;border:1px solid #c4ddf6}
+
+  .loader{position:fixed;inset:0;background:rgba(244,246,249,.86);display:none;place-items:center;z-index:99;backdrop-filter:blur(2px)}
+  .loader.on{display:grid}
+  .spinner{width:46px;height:46px;border:4px solid #d6e0ea;border-top-color:var(--steel);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader p{color:var(--navy);font-weight:600;font-size:14px;text-align:center}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border:1px solid var(--line)}
+  .kpi .lab{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+  .kpi .lab .dot{width:8px;height:8px;border-radius:50%}
+  .kpi .val{font-size:25px;font-weight:800;margin-top:8px;letter-spacing:-.5px}
+  .kpi .sub{font-size:12px;color:var(--hint);margin-top:3px}
+
+  .panel{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line);padding:16px 18px;margin-bottom:18px}
+  .filters{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  select,input[type=search]{font-family:var(--font);font-size:13.5px;border:1px solid var(--line);border-radius:9px;padding:8px 11px;background:#fff;color:var(--ink);min-width:160px;height:38px}
+  select:focus,input:focus{outline:none;border-color:var(--steel);box-shadow:0 0 0 3px var(--steel-light)}
+  .filters .grow{flex:1;min-width:200px}
+  .filters .grow input{width:100%}
+  .pill{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600;align-self:center}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line);padding:18px}
+  .card h3{font-size:15px;font-weight:700;margin-bottom:2px}
+  .card .csub{font-size:12px;color:var(--hint);margin-bottom:14px}
+  .chartbox{position:relative;width:100%;height:300px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .tablecard{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden}
+  .tablecard .thead{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+  .tablecard h3{font-size:15px;font-weight:700}
+  .scroll{overflow-x:auto;max-height:560px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-weight:600;text-align:left;padding:10px 12px;white-space:nowrap;cursor:pointer;font-size:11.5px;letter-spacing:.2px}
+  thead th:hover{background:var(--navy-700)}
+  thead th .ar{opacity:.5;font-size:10px;margin-left:3px}
+  tbody td{padding:9px 12px;border-bottom:1px solid #eef2f6;white-space:nowrap}
+  tbody tr:nth-child(even){background:#fafbfd}
+  tbody tr:hover{background:var(--steel-light)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .badge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+  .b-hi{background:#e7f6f0;color:#0f5e45}.b-mid{background:var(--amber-soft);color:#8a5a06}.b-lo{background:#fdeceb;color:#8c2b27}
+
+  footer{text-align:center;color:var(--hint);font-size:12px;padding:24px 0}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}.topbar .actions .lbl{display:none}}
+  @media print{header.topbar,.drop,.filters,.thead .btn{display:none!important}body{background:#fff}.card,.kpi,.tablecard,.panel{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">VI</div>
+      <div><b>Vision Infra</b><span>Rental Report Analyzer</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="btnReset" disabled><span class="lbl">New file</span> ↺</button>
+      <button class="btn btn-ghost" id="btnCsv" disabled>⬇ <span class="lbl">CSV</span></button>
+      <button class="btn btn-amber" id="btnPdf" disabled>⬇ <span class="lbl">PDF</span></button>
+      <button class="btn btn-green" id="btnXlsx" disabled>⬇ Excel report</button>
+    </div>
+  </div>
+</header>
+
+<div class="loader" id="loader"><div><div class="spinner"></div><p id="loadtext">Processing report…</p></div></div>
+
+<main class="wrap">
+  <div id="msg"></div>
+
+  <section id="uploadView">
+    <div class="intro">
+      <h1>From raw logsheet to finished PNM report</h1>
+      <p>Upload your ERP rental logsheet dump. The system aggregates it per asset, applies Vision Infra's exact formulas, visualises the fleet, and exports the clean PNM Excel report.</p>
+    </div>
+    <div class="drop" id="drop">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
+      <h2>Drag &amp; drop your report here</h2>
+      <p>or click to browse — .xlsx, .xls or .csv</p>
+      <button class="btn btn-line" type="button">Choose file</button>
+      <small>Accepts the <b>raw daily logsheet dump</b> (columns like equipmentnumber, status, running_hrs) — it gets aggregated automatically. An already-summarised <b>PNM template</b> file works too.</small>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden />
+    </div>
+    <div class="modes">
+      <div class="mode"><div class="n">1</div><div><b>Upload dump</b>Daily logsheet straight from the ERP — multiple rows per machine.</div></div>
+      <div class="mode"><div class="n">2</div><div><b>Auto-aggregate</b>Grouped per asset / site / month, day-status counted, hours summed.</div></div>
+      <div class="mode"><div class="n">3</div><div><b>Download report</b>Clean PNM Excel with live formulas, plus PDF &amp; CSV.</div></div>
+    </div>
+  </section>
+
+  <section id="dashView" style="display:none">
+    <div class="kpis" id="kpis"></div>
+
+    <div class="panel">
+      <div class="filters">
+        <div class="field"><label>Month / Year</label><select id="fMonth"></select></div>
+        <div class="field"><label>Department</label><select id="fDept"></select></div>
+        <div class="field"><label>Client</label><select id="fClient"></select></div>
+        <div class="field grow"><label>Search asset / site / location</label><input type="search" id="fSearch" placeholder="e.g. VPAV, JAMNER, Cummins…"></div>
+        <span class="pill" id="rowCount"></span>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Worked hours by department</h3>
+        <div class="csub">Total billable engine hours across the fleet</div>
+        <div class="chartbox"><canvas id="chDept" role="img" aria-label="Bar chart of worked hours by department"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Day-status mix</h3>
+        <div class="csub">How fleet days were spent</div>
+        <div class="legend" id="statusLegend"></div>
+        <div class="chartbox"><canvas id="chStatus" role="img" aria-label="Doughnut chart of day status distribution"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Average utilisation by department</h3>
+        <div class="csub">Worked hours ÷ standard available hours (260/30 × billing days)</div>
+        <div class="chartbox"><canvas id="chUtil" role="img" aria-label="Bar chart of average utilisation by department"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Top 12 assets by worked hours</h3>
+        <div class="csub">Highest-running machines in the current view</div>
+        <div class="chartbox" style="height:340px"><canvas id="chTop" role="img" aria-label="Horizontal bar chart of top assets by worked hours"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tablecard" id="tableCard">
+      <div class="thead"><h3>Processed report</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-line" id="btnCsv2">⬇ CSV (current view)</button>
+          <button class="btn btn-green" id="btnXlsx2">⬇ Excel report</button>
+        </div>
+      </div>
+      <div class="scroll"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<footer>Vision Infra Equipment Solutions · Report Analyzer · all processing runs locally in your browser</footer>
+
+<script>
+/* ================= Column model ================= */
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+const FIELDS = {
+  asset:['assetcode','asset'], make:['make'], model:['model'], yom:['yom','yearofmanufacture'],
+  dept:['department','dept'], status:['workingstatus'],
+  site:['sitecode','site'], client:['clientname','client'], location:['location'],
+  month:['monthyear','month'], start:['startdate'], close:['closedate'],
+  total:['totaldays'], free:['freedays'], transit:['intransitdays','transitdays'],
+  bdwn:['bdwndays','breakdowndays'], idle:['idledays'], working:['workingdays'],
+  worked:['workedhours','workhours'],
+  rent:['monthlyrent'], manpower:['manpowercost'], petty:['pettycash'], maint:['maintenancecost'],
+};
+const REQUIRED = ['asset','total','free','transit','bdwn','idle','working','worked'];
+
+const DUMP = {
+  asset:['equipmentnumber','equipment'], date:['date'], party:['partyname'],
+  site:['sitecode'], location:['sitelocation'], make:['make'], model:['model'],
+  fleet:['fleettype'], hrs:['runninghrs','running_hrs'], status:['status'], doc:['docno','doc_no'],
+};
+
+function buildMap(headers, defs){
+  const map={}, used=new Set();
+  headers.forEach((h,i)=>{ const n=norm(h);
+    for(const [f,al] of Object.entries(defs)){ if(map[f]!==undefined) continue;
+      if(al.some(a=>n===a)){ map[f]=i; used.add(i); } } });
+  headers.forEach((h,i)=>{ if(used.has(i))return; const n=norm(h);
+    for(const [f,al] of Object.entries(defs)){ if(map[f]!==undefined) continue;
+      if(al.some(a=>n.includes(a))){ map[f]=i; used.add(i); } } });
+  return map;
+}
+const numv = v => { const n=parseFloat(String(v).replace(/[, ]/g,'')); return isFinite(n)?n:0; };
+const yomFromCode = code => { const m=/^[A-Za-z]{4}(\d{2})\d/.exec(String(code)); return m?2000+(+m[1]):''; };
+
+/* ================= Formula engine (1:1 with PNM template) ================= */
+function computeRow(r){
+  const deployed=r.total-r.free-r.transit, billing=r.working+r.idle, woHour=260/30*billing;
+  const utilHrs=woHour?r.worked/woHour:0, utilDays=deployed?billing/deployed:0;
+  const totalCost=r.maint+r.petty+r.manpower, costHr=r.worked?totalCost/r.worked:0;
+  return {...r, deployed, billing, woHour, utilHrs, utilDays, totalCost, costHr};
+}
+
+/* ================= Date helpers ================= */
+function toDate(v){
+  if(v instanceof Date) return v;
+  if(typeof v==='number'){ const o=XLSX.SSF.parse_date_code(v); if(o) return new Date(o.y,o.m-1,o.d); }
+  const d=new Date(v); return isNaN(d)?null:d;
+}
+const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const ym  = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+const dateToSerial = d => Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000)+25569;
+
+/* ================= Aggregation (ports etl_transform.py) ================= */
+function aggregateDump(rows, hi, headers){
+  const m = buildMap(headers, DUMP);
+  for(const f of ['asset','date','status','hrs']) if(m[f]===undefined)
+    throw new Error('This looks like a logsheet dump but a needed column is missing ('+f+'). Expected equipmentnumber, date, status, running_hrs.');
+  const g=k=>m[k], groups=new Map(), seen=new Set();
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const asset=String(r[g('asset')]||'').trim(); const d=toDate(r[g('date')]);
+    if(!asset||!d) continue;
+    const status=String(r[g('status')]||'').trim();
+    const hrs=numv(r[g('hrs')]);
+    const site=m.site!==undefined?String(r[m.site]||'').trim():'';
+    const party=m.party!==undefined?String(r[m.party]||'').trim():'';
+    const doc=m.doc!==undefined?String(r[m.doc]||''):'';
+    const dk=ymd(d);
+    const dedup=doc+'|'+dk+'|'+asset+'|'+status+'|'+hrs+'|'+site;
+    if(seen.has(dedup)) continue; seen.add(dedup);
+    const key=asset+'¦'+site+'¦'+party+'¦'+ym(d);
+    let gr=groups.get(key);
+    if(!gr){ gr={asset,site,party,month:ym(d),min:d,max:d,worked:0,
+      make:'',model:'',location:'',dept:'',dateStatus:new Map()};
+      groups.set(key,gr); }
+    if(d<gr.min)gr.min=d; if(d>gr.max)gr.max=d;
+    if(status==='Working') gr.worked+=hrs;
+    if(!gr.dateStatus.has(dk)) gr.dateStatus.set(dk,status);
+    if(!gr.make && m.make!==undefined && r[m.make]) gr.make=String(r[m.make]).trim();
+    if(!gr.model && m.model!==undefined && r[m.model]) gr.model=String(r[m.model]).trim();
+    if(!gr.location && m.location!==undefined && r[m.location]) gr.location=String(r[m.location]).trim();
+    if(!gr.dept && m.fleet!==undefined && r[m.fleet]) gr.dept=String(r[m.fleet]).trim().toUpperCase();
+  }
+  const out=[];
+  for(const gr of groups.values()){
+    const c={Working:0,Idle:0,Breakdown:0,Transit:0,'Free Asset':0,Maintenance:0};
+    for(const s of gr.dateStatus.values()) if(c[s]!==undefined) c[s]++;
+    const total=Math.round((gr.max-gr.min)/86400000)+1;
+    out.push(computeRow({
+      asset:gr.asset, make:gr.make, model:gr.model, yom:yomFromCode(gr.asset), dept:gr.dept||'—',
+      site:gr.site, client:gr.party, location:gr.location, month:gr.month,
+      start:gr.min, close:gr.max,
+      total, free:c['Free Asset'], transit:c.Transit, bdwn:c.Breakdown,
+      idle:c.Idle, working:c.Working, worked:Math.round(gr.worked*100)/100,
+      rent:0, manpower:0, petty:0, maint:0,
+    }));
+  }
+  out.sort((a,b)=> a.month<b.month?-1:a.month>b.month?1: a.dept<b.dept?-1:a.dept>b.dept?1: a.asset<b.asset?-1:1);
+  return out;
+}
+
+/* ================= Parse already-summarised PNM file ================= */
+function parsePnm(rows, hi, headers){
+  const map=buildMap(headers,FIELDS);
+  const missing=REQUIRED.filter(f=>map[f]===undefined);
+  if(missing.length){ const nice={asset:'Asset Code',total:'Total Days',free:'Free Days',transit:'In Transit Days',bdwn:'BDWN Days',idle:'Idle Days',working:'Working Days',worked:'Worked Hours'};
+    throw new Error('Missing required column(s): '+missing.map(m=>nice[m]).join(', ')+'.'); }
+  const out=[];
+  for(let i=hi+1;i<rows.length;i++){ const r=rows[i]; const g=k=>map[k]!==undefined?r[map[k]]:'';
+    const asset=String(g('asset')).trim(); if(!asset) continue;
+    const sd=toDate(g('start')), cd=toDate(g('close'));
+    out.push(computeRow({ asset, make:String(g('make')).trim(), model:String(g('model')).trim(),
+      yom:String(g('yom')).trim(), dept:String(g('dept')).trim().toUpperCase()||'—',
+      site:String(g('site')).trim(), client:String(g('client')).trim(), location:String(g('location')).trim(),
+      month:String(g('month')).trim(), start:sd, close:cd,
+      total:numv(g('total')), free:numv(g('free')), transit:numv(g('transit')),
+      bdwn:numv(g('bdwn')), idle:numv(g('idle')), working:numv(g('working')), worked:numv(g('worked')),
+      rent:numv(g('rent')), manpower:numv(g('manpower')), petty:numv(g('petty')), maint:numv(g('maint')) }));
+  }
+  if(!out.length) throw new Error('No data rows found beneath the header.');
+  return out;
+}
+
+/* ================= Detect & route ================= */
+let SOURCE='';
+function parseWorkbook(data){
+  const wb=XLSX.read(data,{type:'array',cellDates:true,dense:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+  if(!rows.length) throw new Error('The file appears to be empty.');
+  let hi=rows.findIndex(r=>r&&r.some(c=>{const n=norm(c);return n.includes('equipmentnumber')||n.includes('asset');}));
+  if(hi<0) hi=0;
+  const headers=rows[hi].map(x=>String(x));
+  const set=new Set(headers.map(norm));
+  const isDump = ([...set].some(s=>s.includes('equipmentnumber'))) &&
+                 ([...set].some(s=>s.includes('runninghrs'))|| set.has('status'));
+  if(isDump){ SOURCE='dump'; return aggregateDump(rows,hi,headers); }
+  SOURCE='pnm'; return parsePnm(rows,hi,headers);
+}
+
+/* ================= State ================= */
+let RAW=[], VIEW=[], sortKey='worked', sortDir=-1, charts={};
+const fmtN=(n,d=0)=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmtPct=n=>fmtN(n*100,1)+'%';
+const fmtCur=n=>'₹'+fmtN(n,0);
+const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+const uniq=(a,k)=>[...new Set(a.map(x=>x[k]).filter(Boolean))].sort();
+const STATUS=[['working','Working','#1d9e75'],['idle','Idle','#f59e0b'],['bdwn','Breakdown','#d8504c'],['transit','In transit','#2f6db0'],['free','Free','#8a98a4']];
+
+/* ================= Render ================= */
+function setMsg(html,cls){document.getElementById('msg').innerHTML=html?`<div class="alert ${cls}">${html}</div>`:'';}
+function initFilters(){ const m=fMonth,d=fDept,c=fClient;
+  const opt=(s,a,l)=>{s.innerHTML=`<option value="">All ${l}</option>`+a.map(v=>`<option>${v}</option>`).join('');};
+  opt(m,uniq(RAW,'month'),'months');opt(d,uniq(RAW,'dept'),'departments');opt(c,uniq(RAW,'client'),'clients'); }
+function applyFilters(){ const m=fMonth.value,d=fDept.value,c=fClient.value,q=norm(fSearch.value);
+  VIEW=RAW.filter(r=>(!m||r.month===m)&&(!d||r.dept===d)&&(!c||r.client===c)&&
+    (!q||norm(r.asset+r.site+r.location+r.make+r.model+r.client).includes(q))); render(); }
+function render(){renderKpis();renderCharts();renderTable();
+  document.getElementById('rowCount').textContent=`${fmtN(VIEW.length)} of ${fmtN(RAW.length)} rows`;}
+
+function renderKpis(){ const v=VIEW, assets=new Set(v.map(x=>x.asset)).size;
+  const wh=sum(v,'worked'),tc=sum(v,'totalCost'),woTot=sum(v,'woHour'),util=woTot?wh/woTot:0;
+  const cards=[['Deployments',fmtN(v.length),`${fmtN(assets)} unique assets`,'#2f6db0'],
+    ['Worked hours',fmtN(wh,0),'total billable engine hrs','#1d9e75'],
+    ['Avg utilisation',fmtPct(util),'hrs vs standard available','#f59e0b'],
+    ['Working days',fmtN(sum(v,'working')),`${fmtN(sum(v,'idle'))} idle · ${fmtN(sum(v,'bdwn'))} breakdown`,'#163a5c'],
+    ['Total cost',tc>0?fmtCur(tc):'—',tc>0?'manpower + petty + maintenance':'add cost columns to populate','#d8504c']];
+  document.getElementById('kpis').innerHTML=cards.map(([l,val,sub,col])=>
+    `<div class="kpi"><div class="lab"><span class="dot" style="background:${col}"></span>${l}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`).join('');}
+function groupSum(a,k,v){const m={};a.forEach(r=>{const x=r[k]||'—';m[x]=(m[x]||0)+r[v];});return m;}
+function renderCharts(){ Object.values(charts).forEach(c=>c&&c.destroy());charts={};
+  const opts=g=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...g});
+  const de=Object.entries(groupSum(VIEW,'dept','worked')).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts.dept=new Chart(chDept,{type:'bar',data:{labels:de.map(x=>x[0]),datasets:[{data:de.map(x=>Math.round(x[1])),backgroundColor:'#2f6db0',borderRadius:5}]},
+    options:opts({scales:{y:{ticks:{callback:v=>fmtN(v)}},x:{ticks:{maxRotation:50,autoSkip:false,font:{size:10}}}}})});
+  const st=STATUS.map(([k,l,col])=>({l,col,v:sum(VIEW,k)})),stot=st.reduce((s,x)=>s+x.v,0)||1;
+  document.getElementById('statusLegend').innerHTML=st.map(s=>`<span><i style="background:${s.col}"></i>${s.l} ${fmtPct(s.v/stot)}</span>`).join('');
+  charts.status=new Chart(chStatus,{type:'doughnut',data:{labels:st.map(s=>s.l),datasets:[{data:st.map(s=>s.v),backgroundColor:st.map(s=>s.col),borderWidth:2,borderColor:'#fff'}]},options:opts({cutout:'58%'})});
+  const byd={};VIEW.forEach(r=>{(byd[r.dept]=byd[r.dept]||[]).push(r);});
+  const ue=Object.entries(byd).map(([d,a])=>{const w=sum(a,'worked'),wo=sum(a,'woHour');return[d,wo?w/wo:0];}).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts.util=new Chart(chUtil,{type:'bar',data:{labels:ue.map(x=>x[0]),datasets:[{data:ue.map(x=>+(x[1]*100).toFixed(1)),backgroundColor:'#f59e0b',borderRadius:5}]},
+    options:opts({scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{maxRotation:50,autoSkip:false,font:{size:10}}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'% utilisation'}}}})});
+  const ta=[...VIEW].sort((a,b)=>b.worked-a.worked).slice(0,12);
+  charts.top=new Chart(chTop,{type:'bar',data:{labels:ta.map(r=>r.asset),datasets:[{data:ta.map(r=>Math.round(r.worked)),backgroundColor:'#163a5c',borderRadius:5}]},
+    options:opts({indexAxis:'y',scales:{x:{ticks:{callback:v=>fmtN(v)}},y:{ticks:{font:{size:10.5}}}}})});}
+
+const COLS=[['asset','Asset',0],['dept','Dept',0],['client','Client',0],['site','Site',0],['month','Month',0],
+  ['total','Total',1],['deployed','Deployed',1],['working','Work',1],['idle','Idle',1],['bdwn','BDWN',1],
+  ['billing','Billing',1],['worked','Worked hrs',1],['utilHrs','Util/hr',2],['utilDays','Util/day',2],
+  ['totalCost','Total cost',3],['costHr','Cost/hr',3]];
+function renderTable(){ const th=document.querySelector('#tbl thead'),tb=document.querySelector('#tbl tbody');
+  th.innerHTML='<tr>'+COLS.map(([k,l])=>`<th data-k="${k}">${l}${sortKey===k?`<span class="ar">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('')+'</tr>';
+  th.querySelectorAll('th').forEach(h=>h.onclick=()=>{const k=h.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}render();});
+  const rows=[...VIEW].sort((a,b)=>{let x=a[sortKey],y=b[sortKey];
+    if(typeof x==='string'){x=x.toLowerCase();y=String(y).toLowerCase();return x<y?-sortDir:x>y?sortDir:0;}return(x-y)*sortDir;}).slice(0,400);
+  tb.innerHTML=rows.map(r=>{ const ub=r.utilHrs>=.5?'b-hi':r.utilHrs>=.2?'b-mid':'b-lo';
+    return '<tr>'+COLS.map(([k,l,t])=>{ let v=r[k];
+      if(k==='utilHrs')return `<td class="num"><span class="badge ${ub}">${fmtPct(v)}</span></td>`;
+      if(k==='utilDays')return `<td class="num">${fmtPct(v)}</td>`;
+      if(t===1)return `<td class="num">${fmtN(v,k==='worked'?1:0)}</td>`;
+      if(t===3)return `<td class="num">${v>0?fmtCur(v):'—'}</td>`;
+      return `<td>${v||'—'}</td>`;}).join('')+'</tr>';}).join('');
+  if(VIEW.length>400) tb.innerHTML+=`<tr><td colspan="${COLS.length}" style="text-align:center;color:var(--hint);padding:14px">Showing first 400 rows — export Excel/CSV for the full ${fmtN(VIEW.length)} rows.</td></tr>`;}
+
+/* ================= Exports ================= */
+function exportCsv(){
+  const head=['Asset Code','Make','Model','YOM','Department','Site Code','Client','Location','Month',
+    'Total Days','Free Days','In Transit','Deployed Days','BDWN Days','Idle Days','Working Days','Billing Days',
+    'Worked Hours','WO-Hour','Util/Hrs','Util/Days','Monthly Rent','Manpower','Petty Cash','Maintenance','Total Cost','Cost/Hour'];
+  const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+  const lines=[head.map(q).join(',')];
+  VIEW.forEach(r=>lines.push([r.asset,r.make,r.model,r.yom,r.dept,r.site,r.client,r.location,r.month,
+    r.total,r.free,r.transit,r.deployed,r.bdwn,r.idle,r.working,r.billing,r.worked.toFixed(2),r.woHour.toFixed(2),
+    r.utilHrs.toFixed(4),r.utilDays.toFixed(4),r.rent,r.manpower,r.petty,r.maint,r.totalCost,r.costHr.toFixed(2)].map(q).join(',')));
+  dl(new Blob([lines.join('\n')],{type:'text/csv'}),'csv');
+}
+
+const PNM_HEAD=['Sr No','Asset Code','Make ','Model ','YOM','DEPARTMENT','ALLOCATED TO','Working Status',
+  'SITE CODE','CLIENT NAME','LOCATION','MONTH/YEAR','START DATE','CLOSE DATE','Total Days ','Free Days ',
+  'IN TRANSIT DAYS','DEPLOYED DAYS','BDWN Days ','Idle  Days ','Working Days','Billing Days ','WORKED HOURS',
+  'WO-HOUR','UTILIZATION/HRS','UTILIZATION/DAYS','Monthly Rent ','MANPOWER COST','PETTY CASH','MAINTENANCE COST','Total Cost','COST PER HOUR'];
+const WIDTHS=[6,11.3,7.6,8.3,5.6,14.1,15.2,15.3,47.2,39.6,21.3,14.3,12.3,13,10.8,10,16.9,16.4,12.1,10,14,11.7,16.9,12,17.6,18.8,14.4,18.4,12.2,20.7,10.4,16.3];
+function exportXlsx(){
+  showLoad('Building Excel report…');
+  setTimeout(()=>{ try{
+    const data=[...VIEW]; const ws={};
+    const lastXl=data.length+1;          // excel row of last data row
+    const totXl=data.length+2;           // excel row of the TOTAL row
+    PNM_HEAD.forEach((h,c)=>{ ws[XLSX.utils.encode_cell({r:0,c})]={t:'s',v:h}; });
+    const s=v=>({t:'s',v:String(v??'')}), n=(v,z)=>{const o={t:'n',v:Number(v)||0};if(z)o.z=z;return o;};
+    /* formula cell WITH a cached value -> Excel shows the number AND the formula on click */
+    const fx=(f,v,z)=>{const o={t:'n',f,v:Number(v)||0};if(z)o.z=z;return o;};
+    const dcell=d=>d?({t:'n',v:dateToSerial(d),z:'dd-mm-yyyy'}):s('');
+    data.forEach((r,idx)=>{ const R=idx+1, xl=R+1;
+      const put=(c,cell)=>{ ws[XLSX.utils.encode_cell({r:R,c})]=cell; };
+      put(0,n(R));
+      put(1,s(r.asset)); put(2,s(r.make)); put(3,s(r.model)); put(4,r.yom?n(r.yom):s(''));
+      put(5,s(r.dept)); put(6,s('')); put(7,s(''));
+      put(8,s(r.site)); put(9,s(r.client)); put(10,s(r.location)); put(11,s(r.month));
+      put(12,dcell(r.start)); put(13,dcell(r.close));
+      put(14,n(r.total)); put(15,n(r.free)); put(16,n(r.transit));
+      put(17,fx(`O${xl}-P${xl}-Q${xl}`, r.deployed));                 // R Deployed
+      put(18,n(r.bdwn)); put(19,n(r.idle)); put(20,n(r.working));
+      put(21,fx(`U${xl}+T${xl}`, r.billing));                         // V Billing
+      put(22,n(r.worked,'#,##0.00'));
+      put(23,fx(`260/30*V${xl}`, r.woHour, '#,##0.00'));              // X WO-Hour
+      put(24,fx(`IFERROR(W${xl}/X${xl},0)`, r.utilHrs, '0.0000'));    // Y Util/hr
+      put(25,fx(`IFERROR(V${xl}/R${xl},0)`, r.utilDays, '0.0000'));   // Z Util/day
+      put(26,r.rent?n(r.rent,'#,##0'):s('')); put(27,r.manpower?n(r.manpower,'#,##0'):s(''));
+      put(28,r.petty?n(r.petty,'#,##0'):s('')); put(29,r.maint?n(r.maint,'#,##0'):s(''));
+      put(30,fx(`AD${xl}+AC${xl}+AB${xl}`, r.totalCost, '#,##0'));    // AE Total Cost
+      put(31,fx(`IFERROR(AE${xl}/W${xl},0)`, r.costHr, '#,##0.00'));  // AF Cost/hr
+    });
+    /* ----- TOTAL row with live SUM / weighted-average formulas ----- */
+    const tot=(c,cell)=>{ ws[XLSX.utils.encode_cell({r:data.length+1,c})]=cell; };
+    const SUM=(L,v,z)=>({t:'n',f:`SUM(${L}2:${L}${lastXl})`,v:Number(v)||0,z});
+    tot(1,{t:'s',v:`TOTAL · ${data.length} rows`});
+    [['O',14,'total'],['P',15,'free'],['Q',16,'transit'],['R',17,'deployed'],['S',18,'bdwn'],
+     ['T',19,'idle'],['U',20,'working'],['V',21,'billing']].forEach(([L,c,k])=>tot(c,SUM(L,sum(data,k))));
+    tot(22,SUM('W',sum(data,'worked'),'#,##0.00'));
+    tot(23,SUM('X',sum(data,'woHour'),'#,##0.00'));
+    tot(24,{t:'n',f:`IFERROR(W${totXl}/X${totXl},0)`,v:sum(data,'woHour')?sum(data,'worked')/sum(data,'woHour'):0,z:'0.0000'});
+    tot(26,SUM('AA',sum(data,'rent'),'#,##0')); tot(27,SUM('AB',sum(data,'manpower'),'#,##0'));
+    tot(28,SUM('AC',sum(data,'petty'),'#,##0')); tot(29,SUM('AD',sum(data,'maint'),'#,##0'));
+    tot(30,SUM('AE',sum(data,'totalCost'),'#,##0'));
+    tot(31,{t:'n',f:`IFERROR(AE${totXl}/W${totXl},0)`,v:sum(data,'worked')?sum(data,'totalCost')/sum(data,'worked'):0,z:'#,##0.00'});
+
+    ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:data.length+1,c:31}});
+    ws['!cols']=WIDTHS.map(w=>({wch:w}));
+    ws['!autofilter']={ref:`A1:AF${lastXl}`};
+    ws['!freeze']={xSplit:0,ySplit:1,topLeftCell:'A2',activePane:'bottomLeft',state:'frozen'};
+    const wb=XLSX.utils.book_new(); wb.SheetNames.push('Sheet1'); wb.Sheets['Sheet1']=ws;
+    wb.Workbook={CalcPr:{fullCalcOnLoad:true},Views:[{RTL:false}]};
+    XLSX.writeFile(wb,'VisionInfra-PNM-Report-'+new Date().toISOString().slice(0,10)+'.xlsx',{bookType:'xlsx'});
+    setMsg(`<b>Excel report generated.</b> ${fmtN(data.length)} rows in PNM format. Click any calculated cell (Deployed, Billing, WO-Hour, Utilisation, Cost) to see its live formula in the formula bar. A TOTAL row with SUM formulas and an auto-filter are included.`,'ok');
+  }catch(e){ setMsg('Could not build Excel: '+e.message,'err'); } hideLoad(); },200);
+}
+function dl(blob,ext){ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='VisionInfra-Report-'+new Date().toISOString().slice(0,10)+'.'+ext;a.click(); }
+
+async function exportPdf(){ showLoad('Building PDF…');
+  try{ const {jsPDF}=window.jspdf; const node=document.getElementById('dashView');
+    const canvas=await html2canvas(node,{scale:2,backgroundColor:'#f4f6f9',useCORS:true});
+    const pdf=new jsPDF('p','mm','a4'); const pw=210,ph=297,iw=pw-16,ih=canvas.height*iw/canvas.width;
+    pdf.setFillColor(14,42,67);pdf.rect(0,0,pw,18,'F');pdf.setTextColor(255);pdf.setFontSize(13);
+    pdf.text('Vision Infra · Rental Report',8,12);pdf.setFontSize(8);pdf.text(new Date().toLocaleString('en-IN'),pw-8,12,{align:'right'});
+    let y=22,rem=ih,sy=0;const pageH=ph-26;
+    while(rem>0){const slice=Math.min(pageH,rem);const part=document.createElement('canvas');
+      part.width=canvas.width;part.height=slice*canvas.width/iw;
+      part.getContext('2d').drawImage(canvas,0,sy,canvas.width,part.height,0,0,canvas.width,part.height);
+      pdf.addImage(part.toDataURL('image/png'),'PNG',8,y,iw,slice);rem-=slice;sy+=part.height;if(rem>0){pdf.addPage();y=10;}}
+    pdf.save('VisionInfra-Report-'+new Date().toISOString().slice(0,10)+'.pdf');
+  }catch(e){setMsg('Could not generate PDF: '+e.message,'err');} hideLoad(); }
+
+/* ================= Flow ================= */
+const showLoad=t=>{document.getElementById('loadtext').textContent=t||'Processing…';document.getElementById('loader').classList.add('on');};
+const hideLoad=()=>document.getElementById('loader').classList.remove('on');
+function handleFile(file){ if(!file)return;
+  if(!/\.(xlsx|xls|csv)$/i.test(file.name)){setMsg('<b>Unsupported file.</b> Upload an .xlsx, .xls or .csv.','err');return;}
+  setMsg(''); const big=file.size>20*1024*1024;
+  showLoad(big?'Reading large file — this can take a moment…':'Reading & applying formulas…');
+  const rd=new FileReader();
+  rd.onerror=()=>{hideLoad();setMsg('<b>Could not read the file.</b> Try re-exporting from your ERP.','err');};
+  rd.onload=e=>{ setTimeout(()=>{ try{
+      RAW=parseWorkbook(e.target.result); initFilters(); applyFilters();
+      document.getElementById('uploadView').style.display='none';
+      document.getElementById('dashView').style.display='block';
+      ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(id=>document.getElementById(id).disabled=false);
+      const assets=new Set(RAW.map(r=>r.asset)).size;
+      if(SOURCE==='dump') setMsg(`<b>Logsheet aggregated.</b> Built ${fmtN(RAW.length)} per-asset deployment rows from the raw dump (${fmtN(assets)} assets). Click <b>Excel report</b> to download the PNM file. Cost columns are blank — add them from your MASTER sheet to populate cost metrics.`,'ok');
+      else setMsg(`<b>PNM report loaded.</b> ${fmtN(RAW.length)} rows · ${fmtN(assets)} assets.`,'ok');
+    }catch(err){ document.getElementById('uploadView').style.display='block'; setMsg('<b>'+err.message+'</b>','err'); }
+    hideLoad(); }, big?60:350); };
+  rd.readAsArrayBuffer(file);
+}
+function reset(){RAW=[];VIEW=[];SOURCE='';setMsg('');
+  document.getElementById('uploadView').style.display='block';
+  document.getElementById('dashView').style.display='none';
+  document.getElementById('file').value='';
+  ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(id=>document.getElementById(id).disabled=true);}
+
+const drop=document.getElementById('drop'),file=document.getElementById('file');
+drop.onclick=()=>file.click(); file.onchange=e=>handleFile(e.target.files[0]);
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>handleFile(e.dataTransfer.files[0]));
+['fMonth','fDept','fClient'].forEach(id=>document.getElementById(id).onchange=applyFilters);
+document.getElementById('fSearch').oninput=applyFilters;
+document.getElementById('btnReset').onclick=reset;
+document.getElementById('btnCsv').onclick=exportCsv; document.getElementById('btnCsv2').onclick=exportCsv;
+document.getElementById('btnPdf').onclick=exportPdf;
+document.getElementById('btnXlsx').onclick=exportXlsx; document.getElementById('btnXlsx2').onclick=exportXlsx;
+</script>
+</body>
+</html>
