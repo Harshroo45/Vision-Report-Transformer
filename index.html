@@ -427,7 +427,7 @@ let CURRENT=null, PROC=null, RAW=[], VIEW=[], sortKey=null, sortDir=-1, chartObj
 function renderCards(){
   document.getElementById('reportCards').innerHTML = Object.entries(REPORTS).map(([id,p])=>
     `<div class="rcard ${p.meta.soon?'soon':''}" data-id="${id}">
-       ${p.meta.soon?'<span class="tag">Preview</span>':''}
+       ${p.meta.soon?'<span class="tag">Under Development</span>':''}
        <div class="ic">${p.meta.icon}</div>
        <h3>${p.meta.name}</h3><p>${p.meta.tagline}</p>
      </div>`).join('');
