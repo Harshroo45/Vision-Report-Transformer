@@ -4,7 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vision Infra · Rental Report Analyzer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+// Fallback to the older CDN only if the official one is blocked, so the app still loads.
+if (typeof XLSX === 'undefined') {
+  document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/scr'+'ipt>');
+}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -145,7 +151,7 @@
       <h2>Drag &amp; drop your report here</h2>
       <p>or click to browse — .xlsx, .xls or .csv</p>
       <button class="btn btn-line" type="button">Choose file</button>
-      <small>Accepts the <b>raw daily logsheet dump</b> (columns like equipmentnumber, status, running_hrs) — it gets aggregated automatically. An already-summarised <b>PNM template</b> file works too.</small>
+      <small>Accepts the <b>raw daily logsheet dump</b> (columns like equipmentnumber, status, running_hrs) — it gets aggregated automatically. An already-summarised <b>PNM template</b> file works too.<br>Tip: large legacy <b>.xls</b> files read best if you first <b>Save As .xlsx</b> in Excel.</small>
       <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden />
     </div>
     <div class="modes">
@@ -336,7 +342,8 @@ function parsePnm(rows, hi, headers){
 /* ================= Detect & route ================= */
 let SOURCE='';
 function parseWorkbook(data){
-  const wb=XLSX.read(data,{type:'array',cellDates:true,dense:true});
+  // WTF:false => skip unknown legacy .xls records (e.g. 0x27d) instead of erroring
+  const wb=XLSX.read(data,{type:'array',cellDates:true,dense:true,WTF:false});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
   if(!rows.length) throw new Error('The file appears to be empty.');
@@ -514,14 +521,21 @@ function handleFile(file){ if(!file)return;
   const rd=new FileReader();
   rd.onerror=()=>{hideLoad();setMsg('<b>Could not read the file.</b> Try re-exporting from your ERP.','err');};
   rd.onload=e=>{ setTimeout(()=>{ try{
-      RAW=parseWorkbook(e.target.result); initFilters(); applyFilters();
+      RAW=parseWorkbook(e.target.result);
+      if(!RAW.length) throw new Error('No data rows were read from this file.');
+      initFilters(); applyFilters();
       document.getElementById('uploadView').style.display='none';
       document.getElementById('dashView').style.display='block';
       ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(id=>document.getElementById(id).disabled=false);
       const assets=new Set(RAW.map(r=>r.asset)).size;
       if(SOURCE==='dump') setMsg(`<b>Logsheet aggregated.</b> Built ${fmtN(RAW.length)} per-asset deployment rows from the raw dump (${fmtN(assets)} assets). Click <b>Excel report</b> to download the PNM file. Cost columns are blank — add them from your MASTER sheet to populate cost metrics.`,'ok');
       else setMsg(`<b>PNM report loaded.</b> ${fmtN(RAW.length)} rows · ${fmtN(assets)} assets.`,'ok');
-    }catch(err){ document.getElementById('uploadView').style.display='block'; setMsg('<b>'+err.message+'</b>','err'); }
+    }catch(err){ document.getElementById('uploadView').style.display='block';
+      const isXls=/\.xls$/i.test(file.name);
+      const tip = isXls
+        ? '<b>This .xls file couldn\u2019t be read fully.</b> Old .xls files from some ERPs use records this reader can\u2019t parse. Please open it in Excel and use <b>Save As \u2192 Excel Workbook (.xlsx)</b>, then upload the .xlsx \u2014 it\u2019s smaller and reads cleanly.'
+        : '<b>'+err.message+'</b>';
+      setMsg(tip,'err'); }
     hideLoad(); }, big?60:350); };
   rd.readAsArrayBuffer(file);
 }

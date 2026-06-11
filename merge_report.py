@@ -19,6 +19,7 @@ from openpyxl.utils import get_column_letter
 
 norm = lambda s: re.sub(r'[^a-z0-9]', '', str(s).lower())
 
+# canonical field -> accepted header aliases (normalised)
 F = {
  'asset':['assetcode'],'make':['make'],'model':['model'],'yom':['yom'],
  'dept':['department','dept'],'site':['sitecode'],'client':['clientname'],

@@ -14,6 +14,7 @@ from copy import copy
 def read_any(path):
     if path.lower().endswith('.xlsx'):
         return pd.read_excel(path)
+    # convert legacy .xls via LibreOffice
     out_dir = os.path.dirname(os.path.abspath(path)) or '.'
     subprocess.run(['libreoffice','--headless','--convert-to','xlsx',
                     '--outdir', out_dir, path], check=True,
@@ -42,6 +43,7 @@ def aggregate(df):
     rows = []
     for (eq, site, party, month), sub in df.groupby(
             ['equipmentnumber', 'sitecode', 'party_name', 'month'], dropna=False):
+        # one status per calendar date (first logged)
         dates = sub.groupby('date')['status'].first()
         cnt = dates.value_counts()
         start, close = sub['date'].min(), sub['date'].max()
@@ -68,6 +70,7 @@ def aggregate(df):
     return pd.DataFrame(rows).sort_values(
         ['MONTH/YEAR', 'DEPARTMENT', 'Asset Code']).reset_index(drop=True)
 
+# Column -> letter map (matches TEMPLATE-PNM.xlsx exactly)
 COLMAP = {
     'Asset Code':'B','Make':'C','Model':'D','YOM':'E','DEPARTMENT':'F',
     'SITE CODE':'I','CLIENT NAME':'J','LOCATION':'K','MONTH/YEAR':'L',
@@ -79,6 +82,7 @@ COLMAP = {
 def write_output(agg, template_path, out_path):
     wb = load_workbook(template_path)
     ws = wb['Sheet1']
+    # capture header + a data-row style template, then clear old data
     style_row = 2
     styles = {c: copy(ws.cell(style_row, c)._style) for c in range(1, 33)}
     if ws.max_row > 1:
@@ -88,6 +92,7 @@ def write_output(agg, template_path, out_path):
         d = dict(zip(agg.columns, rec))
         for col, letter in COLMAP.items():
             ws[f'{letter}{i}'] = d[col]
+        # template formulas (logic preserved 1:1; IFERROR avoids #DIV/0! display)
         ws[f'A{i}'] = f'=ROW(A{i-1})'
         ws[f'R{i}'] = f'=O{i}-P{i}-Q{i}'                 # Deployed = Total-Free-Transit
         ws[f'V{i}'] = f'=U{i}+T{i}'                      # Billing  = Working+Idle
@@ -96,6 +101,7 @@ def write_output(agg, template_path, out_path):
         ws[f'Z{i}'] = f'=IFERROR(V{i}/R{i},0)'           # Util/day = Billing/Deployed
         ws[f'AE{i}'] = f'=AD{i}+AC{i}+AB{i}'             # Total Cost
         ws[f'AF{i}'] = f'=IFERROR(AE{i}/W{i},0)'         # Cost/hour
+        # re-apply template styling
         for c in range(1, 33):
             ws.cell(i, c)._style = copy(styles[c])
     wb.save(out_path)

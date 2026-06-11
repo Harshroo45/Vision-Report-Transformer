@@ -7,6 +7,25 @@ raw Master logsheet, inheriting the EXACT formulas, structure, styles, column
 widths, number formats, conditional formatting and auto-filter of the reference
 file (final_fine.xlsx).
 
+The "Summery report" sheet stays fully formula-driven off "Master":
+  A  Sr No            =ROW()-1
+  C  Make            =IFERROR(INDEX(Master!I:I,MATCH($B,Master!G:G,0)),"")
+  D  Model           =IFERROR(INDEX(Master!J:J,MATCH($B,Master!G:G,0)),"")
+  F  DEPARTMENT      =IFERROR(INDEX(Master!L:L,MATCH($B,Master!G:G,0)),"")
+  J  MONTH/YEAR      =TEXT(K,"mmm-yyyy")
+  K  START DATE      =IFERROR(MINIFS(Master!B:B,Master!G:G,$B,Master!E:E,$G),"")
+  L  CLOSE DATE      =IFERROR(MAXIFS(Master!B:B,Master!G:G,$B,Master!E:E,$G),"")
+  M  Total Days      {=IFERROR(ROWS(UNIQUE(FILTER(dates, asset*site))),0)}
+  N  Free Days       {= ... *status="Free Asset"}
+  O  IN TRANSIT      {= ... *status="Transit"}
+  P  DEPLOYED        =M-N-O
+  Q  BDWN            {= ... *status="Breakdown"}
+  R  Idle            {= ... *status="Idle"}
+  S  Working         {= ... *status="Working"}
+  T  Billing         =R+S
+  U  WORKED HOURS    =SUMIFS(Master!T:T,Master!G:G,$B,Master!E:E,$G)
+Inputs (filled from the new data): B Asset Code, G Site Code, H Client, I Location.
+
 Usage:
   python build_summary_report.py <new_master.xlsx|.xls|.csv> [reference.xlsx] [output.xlsx]
 """
@@ -22,10 +41,11 @@ SUMMARY_SHEET = "Summery report"
 MASTER_SHEET  = "Master"
 EXCEL_EPOCH   = datetime.date(1899, 12, 30)
 
+# ---------- helpers ----------
 def read_any(path):
     if path.lower().endswith(".csv"):
         return pd.read_csv(path)
-    if path.lower().endswith(".xls"):
+    if path.lower().endswith(".xls"):                       # legacy -> convert
         out = os.path.dirname(os.path.abspath(path)) or "."
         subprocess.run(["libreoffice","--headless","--convert-to","xlsx","--outdir",out,path],
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -38,6 +58,7 @@ def serial(d):
     d = pd.Timestamp(d).date()
     return (d - EXCEL_EPOCH).days
 
+# ---------- formula templates (verbatim from reference) ----------
 def formulas(r, N):
     A = f"=ROW()-1"
     C = f'=IFERROR(INDEX(Master!I:I,MATCH($B{r},Master!G:G,0)),"")'
@@ -59,6 +80,7 @@ def formulas(r, N):
     Q = arr("Breakdown"); R = arr("Idle"); S = arr("Working")
     return dict(A=A,C=C,D=D,F=F,J=J,K=K,L=L,M=M,N=N_,O=O,P=P,Q=Q,R=R,S=S,T=T,U=U)
 
+# ---------- python-side values (for cached <v>, matches Excel exactly) ----------
 def compute_values(master, pairs, first_by_asset):
     m = master
     vals = {}
@@ -82,6 +104,7 @@ def compute_values(master, pairs, first_by_asset):
         )
     return vals
 
+# ---------- cached-value injection (keeps formulas, adds <v> for any viewer) ----------
 NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 def inject_cache(path, sheet_filename, cache_by_ref):
     ET.register_namespace("", NS)
@@ -94,7 +117,7 @@ def inject_cache(path, sheet_filename, cache_by_ref):
     root = ET.fromstring(xml)
     for c in root.iter(f"{{{NS}}}c"):
         ref = c.get("r")
-        if ref not in cache_by_ref:
+        if ref not in cache_by_ref:        # only formula cells we computed
             continue
         f = c.find(f"{{{NS}}}f")
         if f is None:
@@ -130,6 +153,7 @@ def sheet_file_for(xlsx_path, sheet_name):
             return "xl/" + tgt if not tgt.startswith("/") else tgt.lstrip("/")
     raise RuntimeError("sheet not found")
 
+# ---------- main build ----------
 def build(new_master_path, ref_path, out_path):
     new = read_any(new_master_path)
     new.columns = [str(c) for c in new.columns]
@@ -137,14 +161,17 @@ def build(new_master_path, ref_path, out_path):
     new["running_hrs"] = pd.to_numeric(new["running_hrs"], errors="coerce").fillna(0)
     new["status"] = new["status"].astype(str).str.strip()
 
-    wb = load_workbook(ref_path)
+    wb = load_workbook(ref_path)                 # template: keeps styles/CF/widths/header
     ms, ss = wb[MASTER_SHEET], wb[SUMMARY_SHEET]
 
+    # styles to clone onto new rows
     master_styles  = {c: copy(ms.cell(2,c)._style) for c in range(1, ms.max_column+1)}
     summary_styles = {c: copy(ss.cell(2,c)._style) for c in range(1, 22)}
     master_headers = [ms.cell(1,c).value for c in range(1, ms.max_column+1)]
 
+    # ----- rewrite Master -----
     if ms.max_row > 1: ms.delete_rows(2, ms.max_row-1)
+    cols = [h for h in master_headers if h in new.columns]
     for c,h in enumerate(master_headers, start=1):
         ms.cell(1,c, h)
     for i,(_,row) in enumerate(new.iterrows(), start=2):
@@ -153,8 +180,9 @@ def build(new_master_path, ref_path, out_path):
             if h == "date" and pd.notna(v): v = pd.Timestamp(v).to_pydatetime()
             ms.cell(i,c, None if (pd.isna(v) if not isinstance(v,(list,dict)) else False) else v)
             ms.cell(i,c)._style = copy(master_styles[c])
-    N = len(new) + 1
+    N = len(new) + 1                              # Master last row index
 
+    # ----- deployment list (one row per distinct asset+site) -----
     pairs = (new[["equipmentnumber","sitecode"]].dropna()
                 .drop_duplicates().sort_values(["sitecode","equipmentnumber"]))
     pairs = list(pairs.itertuples(index=False, name=None))
@@ -167,6 +195,7 @@ def build(new_master_path, ref_path, out_path):
         if key not in site_meta:
             site_meta[key]=(r.get("party_name",""), r.get("sitelocation",""))
 
+    # ----- rewrite Summery report -----
     if ss.max_row > 1: ss.delete_rows(2, ss.max_row-1)
     cache = {}
     valmap = compute_values(new, pairs, first_by_asset)
@@ -174,8 +203,10 @@ def build(new_master_path, ref_path, out_path):
         r = idx + 1
         fm = formulas(r, N)
         client, location = site_meta.get((asset,site), ("",""))
+        # inputs
         ss.cell(r,2, asset); ss.cell(r,7, site)
         ss.cell(r,8, client); ss.cell(r,9, location)
+        # formulas
         ss.cell(r,1,  fm["A"])
         ss.cell(r,3,  fm["C"]); ss.cell(r,4, fm["D"]); ss.cell(r,6, fm["F"])
         ss.cell(r,10, fm["J"]); ss.cell(r,11, fm["K"]); ss.cell(r,12, fm["L"])
@@ -183,8 +214,10 @@ def build(new_master_path, ref_path, out_path):
             L=get_column_letter(col)
             ss.cell(r,col, ArrayFormula(ref=f"{L}{r}", text=fm[key]))
         ss.cell(r,16, fm["P"]); ss.cell(r,20, fm["T"]); ss.cell(r,21, fm["U"])
+        # style clone + number formats preserved from row-2 template
         for c in range(1,22):
             ss.cell(r,c)._style = copy(summary_styles[c])
+        # cached values
         v = valmap[idx]
         for col,key in [(1,"A"),(3,"C"),(4,"D"),(6,"F"),(10,"J"),(11,"K"),(12,"L"),
                         (13,"M"),(14,"N"),(15,"O"),(16,"P"),(17,"Q"),(18,"R"),
@@ -199,6 +232,7 @@ def build(new_master_path, ref_path, out_path):
     wb.calculation.fullCalcOnLoad = True
     wb.save(out_path)
 
+    # inject cached values so the file is correct in every viewer (Excel still recalcs)
     inject_cache(out_path, sheet_file_for(out_path, SUMMARY_SHEET), cache)
     return len(new), len(pairs)
 
