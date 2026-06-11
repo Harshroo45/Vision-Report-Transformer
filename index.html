@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vision Infra · Report Analyzer</title>
+<title>Report Analyzer</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 if (typeof XLSX === 'undefined') {
@@ -112,7 +112,7 @@ if (typeof XLSX === 'undefined') {
 </head>
 <body>
 <header class="topbar"><div class="wrap">
-  <div class="brand"><div class="logo">VI</div><div><b>Vision Infra</b><span id="brandSub">Report Analyzer</span></div></div>
+  <div class="brand"><div class="logo">VI</div><div><b>Vision Infra Equipment Solutions Limited</b><span id="brandSub">P&M Report Analyzer</span></div></div>
   <div class="actions">
     <button class="btn btn-ghost" id="btnReset" disabled><span class="lbl">New</span> ↺</button>
     <button class="btn btn-ghost" id="btnCsv" disabled>⬇ <span class="lbl">CSV</span></button>
@@ -134,7 +134,7 @@ if (typeof XLSX === 'undefined') {
 
   <!-- STEP 2: upload -->
   <section id="uploadView" style="display:none">
-    <div class="chosen">Report type: <span class="chip" id="chosenName">—</span> <button class="link" id="changeType">change</button></div>
+    <div class="chosen">Report type: <span class="chip" id="chosenName">—</span> <button class="link" id="changeType">Back</button></div>
     <div class="drop" id="drop">
       <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
       <h2>Drag &amp; drop your Excel file</h2><p>or click to browse — .xlsx, .xls or .csv</p>
@@ -159,7 +159,7 @@ if (typeof XLSX === 'undefined') {
     </div>
   </section>
 </main>
-<footer>Vision Infra Equipment Solutions · Report Analyzer · all processing runs locally in your browser</footer>
+<footer>Vision Infra Equipment Solutions Limited· P&M Report Analyzer · Designed and Developed by Harshal Khadatare</footer>
 
 <script>
 /* =========================================================================
