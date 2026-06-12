@@ -16,6 +16,7 @@ create table if not exists public.app_users (
   created_at    timestamptz default now()
 );
 alter table public.app_users enable row level security;     -- locked: no policies
+alter table public.app_users add column if not exists session_token uuid;  -- for existing tables
 
 create or replace function public.register_user(p_name text, p_user_id text, p_password text)
 returns json language plpgsql security definer set search_path = public, extensions as $$

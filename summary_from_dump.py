@@ -11,7 +11,6 @@ were previously split across several rows are naturally combined.
   Total Days  = distinct calendar dates logged
   Free/Transit/BDWN/Idle/Working Days = distinct dates with that status
   DEPLOYED    = Total - Free - Transit         (formula)
-  Billing     = Idle + Working                 (formula)
   WORKED HOURS= SUM of running_hrs for ALL statuses (matches the SUMIFS logic)
 
 Usage:
@@ -70,8 +69,8 @@ def build(dump_path, out_path):
 HEAD = ['Sr No','Asset Code','Make ','Model ','YOM','DEPARTMENT','SITE CODE','CLIENT NAME',
         'LOCATION','MONTH/YEAR','START DATE','CLOSE DATE','Total Days ','Free Days ',
         'IN TRANSIT DAYS','DEPLOYED DAYS','BDWN Days ','Idle  Days ','Working Days',
-        'Billing Days ','WORKED HOURS']
-WIDTHS = [6,12.7,12,18,6,12,38,42,16,12,14,14,11,10,16,16,12,10,14,12,14]
+        'WORKED HOURS']
+WIDTHS = [6,12.7,12,18,6,12,38,42,16,12,14,14,11,10,16,16,12,10,14,14]
 
 def write(out, path):
     wb = Workbook(); ws = wb.active; ws.title = 'Summery report'
@@ -92,10 +91,9 @@ def write(out, path):
         ws.cell(i,13, d['total']); ws.cell(i,14, d['free']); ws.cell(i,15, d['transit'])
         ws.cell(i,16, f'=M{i}-N{i}-O{i}')
         ws.cell(i,17, d['bdwn']); ws.cell(i,18, d['idle']); ws.cell(i,19, d['working'])
-        ws.cell(i,20, f'=R{i}+S{i}')
-        wc=ws.cell(i,21, d['worked']); wc.number_format='0.00'
-        for c in range(1,22): ws.cell(i,c).border = bd
-    ws.auto_filter.ref = f'A1:U{out.shape[0]+1}'
+        wc=ws.cell(i,20, d['worked']); wc.number_format='0.00'
+        for c in range(1,21): ws.cell(i,c).border = bd
+    ws.auto_filter.ref = f'A1:T{out.shape[0]+1}'
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
 

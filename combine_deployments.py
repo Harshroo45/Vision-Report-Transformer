@@ -11,7 +11,6 @@ are merged into ONE row - even when they fall in different months.
   CLOSE DATE = START + (Total Days - 1)        -> one continuous block
   MONTH/YEAR = month of START
   DEPLOYED   = Total - Free - Transit           (formula)
-  Billing    = Idle + Working                   (formula)
 
 Example (VTCM180009 @ PARNER):
   (30-04 -> 30-04, 1 day)  +  (01-05 -> 13-05, 13 days)
@@ -95,8 +94,8 @@ def combine(df, m):
 HEAD = ['Sr No','Asset Code','Make ','Model ','YOM','DEPARTMENT','SITE CODE','CLIENT NAME',
         'LOCATION','MONTH/YEAR','START DATE','CLOSE DATE','Total Days ','Free Days ',
         'IN TRANSIT DAYS','DEPLOYED DAYS','BDWN Days ','Idle  Days ','Working Days',
-        'Billing Days ','WORKED HOURS']
-WIDTHS = [6,12.7,12,18,6,12,38,42,16,12,14,14,11,10,16,16,12,10,14,12,14]
+        'WORKED HOURS']
+WIDTHS = [6,12.7,12,18,6,12,38,42,16,12,14,14,11,10,16,16,12,10,14,14]
 
 def write(out, path):
     wb = Workbook(); ws = wb.active; ws.title = 'Summery report'
@@ -119,10 +118,9 @@ def write(out, path):
         ws.cell(i,13, int(d['total'])); ws.cell(i,14, int(d['free'])); ws.cell(i,15, int(d['transit']))
         ws.cell(i,16, f'=M{i}-N{i}-O{i}')
         ws.cell(i,17, int(d['bdwn'])); ws.cell(i,18, int(d['idle'])); ws.cell(i,19, int(d['working']))
-        ws.cell(i,20, f'=R{i}+S{i}')
-        wc = ws.cell(i,21, round(d['worked'],2)); wc.number_format = '0.00'
-        for c in range(1,22): ws.cell(i,c).border = bd
-    ws.auto_filter.ref = f'A1:U{out.shape[0]+1}'
+        wc = ws.cell(i,20, round(d['worked'],2)); wc.number_format = '0.00'
+        for c in range(1,21): ws.cell(i,c).border = bd
+    ws.auto_filter.ref = f'A1:T{out.shape[0]+1}'
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
 
