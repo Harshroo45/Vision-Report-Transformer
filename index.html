@@ -1391,67 +1391,45 @@
       opacity: .85
     }
 
-    .ftr-grid {
+    .ftr-top {
       display: grid;
-      grid-template-columns: 1.3fr 0.9fr 1.9fr;
-      gap: 34px;
-      padding: 42px 20px 28px
+      grid-template-columns: 1fr 1.25fr;
+      gap: 40px;
+      padding: 38px 20px 26px;
+      align-items: start
     }
 
-    .ftr-brand .fbrand {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      margin-bottom: 14px
-    }
-
-    .ftr-logo-wrap {
-      width: 54px;
-      height: 54px;
-      border-radius: 15px;
-      flex: none;
-      background: linear-gradient(160deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04));
-      border: 1px solid rgba(255, 255, 255, .18);
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      box-shadow: 0 10px 22px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35)
-    }
-
-    .ftr-logo-img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      padding: 6px
-    }
-
-    .ftr-logo-wrap .logo {
-      width: 54px;
-      height: 54px;
-      border-radius: 15px;
-      font-size: 18px
-    }
-
-    .ftr-brand .fbrand b {
+    .ftr-company b {
       color: #fff;
-      font-size: 17px;
+      font-size: 16px;
       display: block;
-      line-height: 1.15
-    }
-
-    .ftr-brand .fbrand span {
-      color: #9fb6cc;
-      font-size: 11px;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      font-weight: 600
+      line-height: 1.25;
+      margin-bottom: 10px
     }
 
     .ftr-addr {
-      max-width: 330px;
-      font-size: 13px;
+      max-width: 340px;
+      font-size: 12.5px;
       color: #a9b8c8;
-      line-height: 1.7
+      line-height: 1.75
+    }
+
+    .ftr-meta {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin-top: 16px;
+      font-size: 11.5px;
+      color: #8ca0b6;
+      font-weight: 600;
+      letter-spacing: .2px
+    }
+
+    .ftr-meta .sep {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #5b738c
     }
 
     footer.site h5 {
@@ -1602,8 +1580,8 @@
 
     /* ===================== RESPONSIVE ===================== */
     @media(max-width:1080px) {
-      footer.site .ftr-grid {
-        grid-template-columns: 1fr 1.6fr
+      footer.site .ftr-top {
+        grid-template-columns: 1fr 1.4fr
       }
     }
 
@@ -1612,8 +1590,9 @@
         grid-template-columns: 1fr
       }
 
-      footer.site .ftr-grid {
-        grid-template-columns: 1fr 1fr
+      footer.site .ftr-top {
+        grid-template-columns: 1fr;
+        gap: 28px
       }
     }
 
@@ -1756,23 +1735,22 @@
         justify-content: flex-end
       }
 
-      footer.site .ftr-grid {
+      footer.site .ftr-top {
         grid-template-columns: 1fr;
         text-align: center;
-        gap: 26px
+        gap: 24px
       }
 
-      footer.site .ftr-brand {
-        align-items: center
-      }
-
-      .ftr-brand .fbrand,
-      .socials {
-        justify-content: center
+      .ftr-company b {
+        text-align: center
       }
 
       .ftr-addr {
         margin: 0 auto
+      }
+
+      .ftr-meta {
+        justify-content: center
       }
 
       .ftr-contact-cards {
@@ -2022,21 +2000,44 @@
     </main>
 
     <footer class="site">
-      <div class="wrap ftr-bar">
-        <div class="ftr-left">
-          <div class="ftr-logo-wrap">
-            <img src="logo.png" alt="Vision Infra logo" class="ftr-logo-img"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-            <div class="logo" style="display:none">VIESL</div>
-          </div>
-          <div><b id="ftrName">Vision Infra Equipment Solutions</b><span>Report Analytics Platform</span></div>
+      <div class="wrap ftr-top">
+        <div class="ftr-company">
+          <b id="ftrName">Vision Infra Equipment Solutions Ltd.</b>
+          <p class="ftr-addr" id="ftrAddr"></p>
+          <div class="ftr-meta"><span id="ftrVer"></span><i class="sep"></i><span id="ftrUpd"></span></div>
         </div>
-        <div class="ftr-meta">
-          <span id="ftrVer"></span><i class="sep"></i><span id="ftrUpd"></span>
+        <div class="ftr-contact">
+          <h5>Contact Us</h5>
+          <div class="ftr-contact-cards">
+            <div class="ftr-contact-card">
+              <div class="ftr-contact-name"><span class="ftr-av">SP</span>Mr. Sandeep Patil</div>
+              <a class="ftr-contact-row" href="mailto:pnm_audit@visioninfraindia.com"><svg class="ftr-ci"
+                  viewBox="0 0 24 24">
+                  <path
+                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5z" />
+                </svg>pnm_audit@visioninfraindia.com</a>
+              <a class="ftr-contact-row" href="tel:+918956667459"><svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M6.6 10.8a15.5 15.5 0 006.6 6.6l2.2-2.2a1 1 0 011-.24 11 11 0 003.5.56 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11 11 0 00.56 3.5 1 1 0 01-.24 1z" />
+                </svg>+91 89566 67459</a>
+            </div>
+            <div class="ftr-contact-card">
+              <div class="ftr-contact-name"><span class="ftr-av">HK</span>Mr. Harshal Khadatare</div>
+              <a class="ftr-contact-row" href="mailto:itsupport@visioninfraindia.com"><svg class="ftr-ci"
+                  viewBox="0 0 24 24">
+                  <path
+                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5z" />
+                </svg>itsupport@visioninfraindia.com</a>
+              <a class="ftr-contact-row" href="tel:+919075768742"><svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M6.6 10.8a15.5 15.5 0 006.6 6.6l2.2-2.2a1 1 0 011-.24 11 11 0 003.5.56 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11 11 0 00.56 3.5 1 1 0 01-.24 1z" />
+                </svg>+91 90757 68742</a>
+            </div>
+          </div>
         </div>
       </div>
       <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2">Vision Infra Equipment Solutions
-          Ltd.</span> · Report Analytics Dashboard · Designed &amp; Developed by Harshal Khadatare</div>
+          Ltd.</span> · PO-GIN-BILL-PAYMENT Analytics Dashboard · Designed &amp; Developed by Harshal Khadatare</div>
     </footer>
   </div><!-- /appRoot -->
 
@@ -2420,6 +2421,11 @@
       ['2026-04-23', '2026-05-05'], ['2026-05-06', '2026-05-18'], ['2026-05-19', '2026-06-10']],
       convFrom: '2026-05-19',   // PO→GRN conversion window (GRN Date)
       convTo: '2026-06-10',
+      // Active-item rule — count a PO/line only if the line is active (ITEM STATUS = 'I').
+      // This is the reverse-engineered rule that brings "Closed" counts in line with the
+      // reference Summary (inactive/deleted lines are excluded). Set false to count every line.
+      activeItemsOnly: true,
+      activeItemValue: 'I',
       // ── Record-level inclusion filter ─────────────────────────────────────────
       // The reference Summary counts ~2536 POs while the raw date-filtered dump has
       // ~3264 — i.e. the report drops ~22% of POs by a business rule that is NOT
@@ -2463,7 +2469,7 @@
         const need = ['Purchae order No.', 'PO Date', 'PO STATUS', 'DIVISION', 'Department', 'Sub Dept.', 'ITEM CLASS', 'PO BASIC VALUE', 'GRN No', 'GRN DATE', 'GRN TAXABLE VALUE (GRN BASE)', 'PO ITEM CODE', 'PO SCH DETAILS', 'ITEM CODE (GRN)'];
         for (const n of need) if (!(n in idx)) throw new Error('This file is missing the column "' + n + '". Upload a PO-GIN ERP dump (same format as the sample).');
         const C = n => idx[n], CO = n => (n in idx) ? idx[n] : -1;
-        const cSite = CO('LOCATION NAME'), cParty = CO('Party Name'), cBill = CO('RBILL_NO');
+        const cSite = CO('LOCATION NAME'), cParty = CO('Party Name'), cBill = CO('RBILL_NO'), cIStat = CO('ITEM STATUS');
         const lo = new Date(POGIN_CONFIG.dateFrom), hiD = new Date(POGIN_CONFIG.dateTo);
         const wkB = POGIN_CONFIG.weekBuckets.map(([a, b]) => [new Date(a), new Date(b)]);
         const cvLo = new Date(POGIN_CONFIG.convFrom), cvHi = new Date(POGIN_CONFIG.convTo);
@@ -2478,6 +2484,10 @@
           const r = aoa[i]; if (!r) continue;
           const po = String(r[C('Purchae order No.')] || '').trim(); if (!po) continue;
           const pdate = toDate(r[C('PO Date')]); if (!inRange(pdate, lo, hiD)) continue;
+          // Active-item rule: a PO/line counts only if its line item is active (ITEM STATUS = 'I').
+          // Matches the reference's exclusion of inactive/deleted lines. Toggle in POGIN_CONFIG.
+          if (POGIN_CONFIG.activeItemsOnly && cIStat >= 0 &&
+            String(r[cIStat] || '').trim().toUpperCase() !== POGIN_CONFIG.activeItemValue) continue;
           const eg = r[C('DIVISION')], dept = r[C('Department')], sub = r[C('Sub Dept.')];
           if (!POGIN_CONFIG.includeRow(eg, dept, sub, r[C('PO STATUS')])) continue;
           const division = POGIN_CONFIG.divisionOf(eg, dept, sub); if (!division || !DIV[division]) continue;
@@ -2572,11 +2582,8 @@
           ['Total Vendors', fmtN(by('party')), 'distinct parties', '#7c5cbf'],
           ['Total Sites', fmtN(by('site')), 'distinct locations', '#0891b2'],
           ['Total Departments', fmtN(by('department')), 'distinct departments', '#b45309'],
-          ['Total Divisions', fmtN(by('division')), 'distinct divisions', '#475569'],
-          ['Avg PO Value', crore(n ? poVal / n : 0), 'mean per PO', '#2f6db0'],
-          ['Avg GRN Value', crore(withGrn ? grnVal / withGrn : 0), 'mean per received PO', '#1d9e75'],
-          ['Highest PO Value', crore(maxBy('poValue')), 'largest single PO', '#163a5c'],
-          ['Highest GRN Value', crore(maxBy('grnValue')), 'largest single GRN', '#0a66c2'],
+          ['Total Divisions', fmtN(by('division')), 'distinct divisions', '#475569']
+          
         ];
       }
       /* ---------- dynamic charts (Cr, respect filters) ---------- */
@@ -2687,8 +2694,8 @@
         { key: 'party', label: 'Vendor / Party', multi: true },
         { key: 'poDate', label: 'PO Date range', type: 'daterange' },
         { key: 'grnDate', label: 'GRN Date range', type: 'daterange' },
-        { key: 'poValue', label: 'PO Value \u20b9 (min\u2013max)', type: 'range' },
-        { key: 'grnValue', label: 'GRN Value \u20b9 (min\u2013max)', type: 'range' }];
+        { key: 'poValue', label: 'PO Value \u20b9 (min\u2013max)', type: 'range' }];
+        
 
       /* ---------- exact-format 8-section Excel export ---------- */
       async function exportExcel(fileName) {
@@ -3041,6 +3048,7 @@
     function fillFooter() {
       const $ = id => document.getElementById(id);
       $('ftrName').textContent = COMPANY.name; $('ftrName2').textContent = COMPANY.name;
+      const ad = $('ftrAddr'); if (ad) ad.textContent = COMPANY.address;
       $('ftrYear').textContent = new Date().getFullYear();
       const ver = $('ftrVer'); if (ver) ver.textContent = 'Version ' + APP_VERSION;
       const upd = $('ftrUpd'); if (upd) upd.textContent = 'Updated ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
