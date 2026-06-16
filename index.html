@@ -25,6 +25,7 @@
       email: "info@visioninfraindia.com",                                                    /* EDIT */
       website: "https://www.visioninfraindia.com/"                                            /* EDIT */
     };
+    const APP_VERSION = "2.0";   /* dashboard build version shown in footer */
   </script>
   <style>
     :root {
@@ -774,6 +775,79 @@
       font-weight: 600;
       font-size: 12px;
       cursor: pointer
+    }
+
+    .ms-search {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 9px;
+      font-size: 12.5px;
+      margin: 0 0 6px;
+      font-family: var(--font);
+      box-shadow: inset 0 1px 2px rgba(16, 32, 48, .04)
+    }
+
+    .rng {
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .rng input {
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 0 10px;
+      font-size: 13px;
+      color: var(--ink);
+      width: 100%;
+      min-width: 0;
+      font-family: var(--font);
+      box-shadow: inset 0 1px 2px rgba(16, 32, 48, .04)
+    }
+
+    .rng input:focus {
+      outline: none;
+      border-color: var(--steel);
+      box-shadow: 0 0 0 3px var(--sky)
+    }
+
+    .rng span {
+      color: var(--hint);
+      font-size: 13px;
+      flex: none
+    }
+
+    .filters {
+      background: linear-gradient(180deg, #ffffff, #f9fbfe);
+      border: 1px solid #e9eef4;
+      border-radius: var(--r);
+      box-shadow: var(--sh-sm);
+      padding: 16px 18px
+    }
+
+    .kpi {
+      position: relative;
+      overflow: hidden
+    }
+
+    .kpi:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent, #2f6db0);
+      opacity: .85
+    }
+
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--sh-md)
     }
 
     .grid2 {
@@ -1948,71 +2022,21 @@
     </main>
 
     <footer class="site">
-      <div class="wrap ftr-grid">
-        <div class="ftr-brand">
-          <div class="fbrand">
-            <div class="ftr-logo-wrap">
-              <img src="logo.png" alt="Vision Infra logo" class="ftr-logo-img"
-                onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-              <div class="logo" style="display:none">VIESL</div>
-            </div>
-            <div><b id="ftrName">Vision Infra Equipment Solutions</b><span>P&M Report Analyzer</span></div>
+      <div class="wrap ftr-bar">
+        <div class="ftr-left">
+          <div class="ftr-logo-wrap">
+            <img src="logo.png" alt="Vision Infra logo" class="ftr-logo-img"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+            <div class="logo" style="display:none">VIESL</div>
           </div>
-          <p class="ftr-addr" id="ftrAddr"></p>
-          <p class="ftr-mail"><a id="ftrMail" href="#"></a></p>
+          <div><b id="ftrName">Vision Infra Equipment Solutions</b><span>Report Analytics Platform</span></div>
         </div>
-        <div class="ftr-col">
-          <h5>Report Analyzer</h5>
-          <p>Rental &amp; Stock report processing</p>
-          <p>Secure, manager-only access</p>
-          <p>Processing runs in your browser</p>
-        </div>
-        <div class="ftr-col">
-          <h5>Contact Us</h5>
-          <div class="ftr-contact-cards">
-            <div class="ftr-contact-card">
-              <div class="ftr-contact-name">
-                <span class="ftr-av">SP</span>Mr. Sandeep Patil
-              </div>
-              <a class="ftr-contact-row" href="mailto:pnm_audit@visioninfraindia.com">
-                <svg class="ftr-ci" viewBox="0 0 24 24">
-                  <path
-                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                </svg>
-                pnm_audit@visioninfraindia.com
-              </a>
-              <a class="ftr-contact-row" href="tel:+918956667459">
-                <svg class="ftr-ci" viewBox="0 0 24 24">
-                  <path
-                    d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
-                </svg>
-                +91 89566 67459
-              </a>
-            </div>
-            <div class="ftr-contact-card">
-              <div class="ftr-contact-name">
-                <span class="ftr-av">HK</span>Mr. Harshal Khadatare
-              </div>
-              <a class="ftr-contact-row" href="mailto:itsupport@visioninfraindia.com">
-                <svg class="ftr-ci" viewBox="0 0 24 24">
-                  <path
-                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                </svg>
-                itsupport@visioninfraindia.com
-              </a>
-              <a class="ftr-contact-row" href="tel:+919075768742">
-                <svg class="ftr-ci" viewBox="0 0 24 24">
-                  <path
-                    d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
-                </svg>
-                +91 90757 68742
-              </a>
-            </div>
-          </div>
+        <div class="ftr-meta">
+          <span id="ftrVer"></span><i class="sep"></i><span id="ftrUpd"></span>
         </div>
       </div>
       <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2">Vision Infra Equipment Solutions
-          Ltd.</span> · All rights reserved. Designed and Developed by Harshal Khadatare</div>
+          Ltd.</span> · Report Analytics Dashboard · Designed &amp; Developed by Harshal Khadatare</div>
     </footer>
   </div><!-- /appRoot -->
 
@@ -2022,6 +2046,8 @@
     const numv = v => { const n = parseFloat(String(v).replace(/[, ]/g, '')); return isFinite(n) ? n : 0; };
     const fmtN = (n, d = 0) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d });
     const fmtPct = n => fmtN(n * 100, 1) + '%';
+    const crN = v => (+v || 0) / 1e7;                      // numeric value in crores
+    const crore = v => '\u20b9' + fmtN(crN(v), 2) + ' Cr';   // display string ₹X.XX Cr
     const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
     const uniq = (a, k) => [...new Set(a.map(x => x[k]).filter(v => v !== '' && v != null))].sort();
     function toDate(v) {
@@ -2425,25 +2451,28 @@
     const PO_STATUS_MAP = { 'Cancelled': 'cancelled', 'Short Close': 'shortclosed', 'Executed': 'closed', 'Pending': 'open' };
 
     REPORTS.pogin = (function () {
-      let DIV = {}, CAT = {}, MON = {}, AGG = {}, SECT = {};   // kept for charts/kpis/export
+      let DIV = {}, SECT = {};                       // kept for the 8-section Excel export
       const monKey = d => d ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') : '';
       const inRange = (d, a, b) => !!d && d >= a && d <= b;
-      const dayBucket = n => n <= 7 ? 0 : n <= 15 ? 1 : n <= 30 ? 2 : 3;   // <07 / 08-15 / 16-30 / >31
+      const dayBucket = n => n <= 7 ? 0 : n <= 15 ? 1 : n <= 30 ? 2 : 3;
+      const fmtDMY = d => String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
+      const STLABEL = { cancelled: 'Cancelled', shortclosed: 'Short Closed', closed: 'Closed', open: 'Open' };
       function process(wb) {
         const aoa = sheetToAoa(wb, 'Master Data'); if (aoa.length < 2) throw new Error('Master Data sheet looks empty.');
         const H = (aoa[0] || []).map(h => String(h || '').trim()), idx = {}; H.forEach((h, i) => { if (!(h in idx)) idx[h] = i; });
         const need = ['Purchae order No.', 'PO Date', 'PO STATUS', 'DIVISION', 'Department', 'Sub Dept.', 'ITEM CLASS', 'PO BASIC VALUE', 'GRN No', 'GRN DATE', 'GRN TAXABLE VALUE (GRN BASE)', 'PO ITEM CODE', 'PO SCH DETAILS', 'ITEM CODE (GRN)'];
         for (const n of need) if (!(n in idx)) throw new Error('This file is missing the column "' + n + '". Upload a PO-GIN ERP dump (same format as the sample).');
-        const C = n => idx[n];
+        const C = n => idx[n], CO = n => (n in idx) ? idx[n] : -1;
+        const cSite = CO('LOCATION NAME'), cParty = CO('Party Name'), cBill = CO('RBILL_NO');
         const lo = new Date(POGIN_CONFIG.dateFrom), hiD = new Date(POGIN_CONFIG.dateTo);
         const wkB = POGIN_CONFIG.weekBuckets.map(([a, b]) => [new Date(a), new Date(b)]);
         const cvLo = new Date(POGIN_CONFIG.convFrom), cvHi = new Date(POGIN_CONFIG.convTo);
         const ORDER = POGIN_CONFIG.DIV_ORDER;
-        DIV = {}; CAT = {}; MON = {}; AGG = { po: new Set(), grn: new Set(), poval: 0, grnval: 0 };
-        ORDER.forEach(d => DIV[d] = { div: d, total: 0, cancelled: 0, shortclosed: 0, closed: 0, open: 0, poval: 0, grnval: 0 });
+        DIV = {}; ORDER.forEach(d => DIV[d] = { div: d, total: 0, cancelled: 0, shortclosed: 0, closed: 0, open: 0, poval: 0, grnval: 0 });
         const aging = {}, wkDiv = {}, monPo = {}, monGrn = {}, wkCat = {}, divWise = {};
         ORDER.forEach(d => { aging[d] = [0, 0, 0, 0]; wkDiv[d] = [0, 0, 0, 0, 0]; monPo[d] = {}; monGrn[d] = {}; });
-        const poDiv = {}, poDate = {}, poConv = {};   // per-PO for conversion timeline
+        const poDiv = {}, poDate = {}, poConv = {};
+        const PO = {};   // PO-level records for the interactive dashboard
         const seenPO = new Set(), seenPOline = new Set(), seenGRNline = new Set();
         for (let i = 1; i < aoa.length; i++) {
           const r = aoa[i]; if (!r) continue;
@@ -2453,122 +2482,215 @@
           if (!POGIN_CONFIG.includeRow(eg, dept, sub, r[C('PO STATUS')])) continue;
           const division = POGIN_CONFIG.divisionOf(eg, dept, sub); if (!division || !DIV[division]) continue;
           const status = String(r[C('PO STATUS')] || '').trim(), sk = PO_STATUS_MAP[status];
+          const department = String(dept || '').trim() || '\u2014';
+          const site = cSite >= 0 ? (String(r[cSite] || '').trim() || '\u2014') : '\u2014';
+          const party = cParty >= 0 ? (String(r[cParty] || '').trim() || '\u2014') : '\u2014';
+          const grn = String(r[C('GRN No')] || '').trim();
+          const gdate = toDate(r[C('GRN DATE')]);
+          const bill = cBill >= 0 ? String(r[cBill] || '').trim() : '';
+          const cat = String(r[C('ITEM CLASS')] || '\u2014').trim() || '\u2014';
           poDiv[po] = division; poDate[po] = pdate;
-          if (!seenPO.has(po)) {
-            seenPO.add(po); AGG.po.add(po);
-            const d = DIV[division]; d.total++; if (sk) d[sk]++;
-            if (sk === 'open') { const age = Math.floor((hiD - pdate) / 864e5); aging[division][dayBucket(age)]++; }
+          // PO-level record
+          let rec = PO[po];
+          if (!rec) {
+            rec = PO[po] = {
+              po, division, department, site, party, status: STLABEL[sk] || status,
+              poDate: pdate, poValue: 0, grnValue: 0, grnCount: 0, grnNo: grn || '', grnDate: gdate || null,
+              billNo: bill || '', category: cat, _grns: new Set(), _pol: new Set(), _grl: new Set()
+            };
           }
-          // PO value (col BR) — dedup PO-line
+          if (!rec.grnNo && grn) rec.grnNo = grn;
+          if (!rec.billNo && bill) rec.billNo = bill;
+          if (gdate && (!rec.grnDate || gdate < rec.grnDate)) rec.grnDate = gdate;
+          // section-1 status counts (per PO)
+          if (!seenPO.has(po)) {
+            seenPO.add(po);
+            const d = DIV[division]; d.total++; if (sk) d[sk]++;
+            if (sk === 'open') { aging[division][dayBucket(Math.floor((hiD - pdate) / 864e5))]++; }
+          }
+          // PO value (BR) — dedup PO-line
           const plk = po + '\u00A6' + (r[C('PO ITEM CODE')] || '') + '\u00A6' + (r[C('PO SCH DETAILS')] || '');
           if (!seenPOline.has(plk)) {
             seenPOline.add(plk);
-            const v = numv(r[C('PO BASIC VALUE')]); DIV[division].poval += v; AGG.poval += v;
-            const cat = String(r[C('ITEM CLASS')] || '\u2014').trim() || '\u2014'; CAT[cat] = (CAT[cat] || 0) + v;
+            const v = numv(r[C('PO BASIC VALUE')]); DIV[division].poval += v; rec.poValue += v;
             let wi = -1; for (let k = 0; k < wkB.length; k++) { if (inRange(pdate, wkB[k][0], wkB[k][1])) { wi = k; break; } }
             if (wi >= 0) {
               wkDiv[division][wi] += v; (wkCat[cat] = wkCat[cat] || [0, 0, 0, 0, 0])[wi] += v;
               if (wi === wkB.length - 1) { (divWise[cat] = divWise[cat] || {})[division] = (divWise[cat][division] || 0) + v; }
             }
-            const mk = monKey(pdate); monPo[division][mk] = (monPo[division][mk] || 0) + v; (MON[mk] = MON[mk] || { po: 0, grn: 0 }).po += v;
+            monPo[division][monKey(pdate)] = (monPo[division][monKey(pdate)] || 0) + v;
           }
-          // GRN value (col AW) — dedup GRN-line
-          const grn = String(r[C('GRN No')] || '').trim();
+          // GRN value (AW) — dedup GRN-line
           if (grn) {
-            AGG.grn.add(grn);
+            rec._grns.add(grn);
             const glk = grn + '\u00A6' + (r[C('ITEM CODE (GRN)')] || '');
             if (!seenGRNline.has(glk)) {
               seenGRNline.add(glk);
-              const gv = numv(r[C('GRN TAXABLE VALUE (GRN BASE)')]); DIV[division].grnval += gv; AGG.grnval += gv;
-              const gd = toDate(r[C('GRN DATE')]);
-              if (gd) {
-                const mk = monKey(gd); monGrn[division][mk] = (monGrn[division][mk] || 0) + gv; (MON[mk] = MON[mk] || { po: 0, grn: 0 }).grn += gv;
-                if (inRange(gd, cvLo, cvHi)) { const prev = poConv[po]; if (prev === undefined || gd < prev) poConv[po] = gd; }
+              const gv = numv(r[C('GRN TAXABLE VALUE (GRN BASE)')]); DIV[division].grnval += gv; rec.grnValue += gv;
+              if (gdate) {
+                monGrn[division][monKey(gdate)] = (monGrn[division][monKey(gdate)] || 0) + gv;
+                if (inRange(gdate, cvLo, cvHi)) { const p = poConv[po]; if (p === undefined || gdate < p) poConv[po] = gdate; }
               }
             }
           }
         }
-        // PO->GRN conversion buckets (distinct PO, first GRN in conv window)
+        // conversion buckets
         const conv = {}; ORDER.forEach(d => conv[d] = [0, 0, 0, 0]);
         Object.keys(poConv).forEach(po => {
           const d = poDiv[po]; if (!d || !conv[d]) return;
           const dd = Math.floor((poConv[po] - poDate[po]) / 864e5); if (dd >= 0) conv[d][dayBucket(dd)]++;
         });
-        // months present (PO window)
         const months = []; {
           let a = new Date(lo.getFullYear(), lo.getMonth(), 1);
           while (a <= hiD) { months.push(monKey(a)); a = new Date(a.getFullYear(), a.getMonth() + 1, 1); }
         }
-        // section-1 rows + total
-        const rows = ORDER.map((d, i) => ({ sr: String(i + 1), ...DIV[d] }));
-        const T = { sr: '', div: 'Total', total: 0, cancelled: 0, shortclosed: 0, closed: 0, open: 0, poval: 0, grnval: 0 };
-        rows.forEach(r => ['total', 'cancelled', 'shortclosed', 'closed', 'open', 'poval', 'grnval'].forEach(k => T[k] += r[k]));
-        rows.push(T);
         SECT = {
           order: ORDER, aging, conv, wkDiv, wkCat, divWise, monPo, monGrn, months,
           weekLabels: POGIN_CONFIG.weekBuckets.map(([a, b]) => fmtDMY(new Date(a)) + ' to ' + fmtDMY(new Date(b)))
         };
-        return { rows, note: `${fmtN(AGG.po.size)} POs \u00b7 ${fmtN(AGG.grn.size)} GRNs \u00b7 PO value \u20b9${fmtN(AGG.poval, 0)} \u00b7 8-section summary computed dynamically.` };
+        // finalise PO-level rows
+        const rows = Object.values(PO).map(r => { r.grnCount = r._grns.size; delete r._grns; delete r._pol; delete r._grl; return r; });
+        const tpo = rows.reduce((s, r) => s + r.poValue, 0), tgrn = rows.reduce((s, r) => s + r.grnValue, 0);
+        return { rows, note: `${fmtN(rows.length)} POs \u00b7 PO value ${crore(tpo)} \u00b7 GRN value ${crore(tgrn)} \u00b7 filter & drill down below; export gives the full 8-section summary.` };
       }
-      const fmtDMY = d => String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
-      function kpis() {
-        return [['Total Purchase Orders', fmtN(AGG.po.size), 'distinct POs in period', '#2f6db0'],
-        ['Total GRN Records', fmtN(AGG.grn.size), 'distinct GRNs', '#1d9e75'],
-        ['PO Value (Basic)', '\u20b9' + fmtN(AGG.poval, 0), 'col BR \u00b7 PO BASIC VALUE', '#163a5c'],
-        ['GRN Value (Taxable)', '\u20b9' + fmtN(AGG.grnval, 0), 'col AW \u00b7 GRN TAXABLE', '#0a66c2'],
-        ['Open POs', fmtN(sumKey('open')), 'pending POs', '#f59e0b'],
-        ['Cancelled POs', fmtN(sumKey('cancelled')), 'cancelled POs', '#d8504c']];
+      /* ---------- dynamic KPIs (recompute from the filtered view) ---------- */
+      function kpis(view) {
+        const v = view || [];
+        const n = v.length, poVal = v.reduce((s, r) => s + r.poValue, 0), grnVal = v.reduce((s, r) => s + r.grnValue, 0);
+        const grnCnt = v.reduce((s, r) => s + (r.grnCount || 0), 0), withGrn = v.filter(r => r.grnValue > 0).length;
+        const by = k => new Set(v.map(r => r[k]).filter(x => x && x !== '\u2014')).size;
+        const cnt = s => v.filter(r => r.status === s).length;
+        const maxBy = k => v.reduce((m, r) => Math.max(m, r[k] || 0), 0);
+        return [
+          ['Total PO Count', fmtN(n), 'distinct purchase orders', '#2f6db0'],
+          ['Total PO Value', crore(poVal), 'col BR \u00b7 PO basic', '#163a5c'],
+          ['Total GRN Count', fmtN(grnCnt), 'distinct GRNs received', '#1d9e75'],
+          ['Total GRN Value', crore(grnVal), 'col AW \u00b7 GRN taxable', '#0a66c2'],
+          ['Open PO', fmtN(cnt('Open')), 'pending', '#f59e0b'],
+          ['Closed PO', fmtN(cnt('Closed')), 'executed', '#1d9e75'],
+          ['Cancelled PO', fmtN(cnt('Cancelled')), 'cancelled', '#d8504c'],
+          ['Total Vendors', fmtN(by('party')), 'distinct parties', '#7c5cbf'],
+          ['Total Sites', fmtN(by('site')), 'distinct locations', '#0891b2'],
+          ['Total Departments', fmtN(by('department')), 'distinct departments', '#b45309'],
+          ['Total Divisions', fmtN(by('division')), 'distinct divisions', '#475569'],
+          ['Avg PO Value', crore(n ? poVal / n : 0), 'mean per PO', '#2f6db0'],
+          ['Avg GRN Value', crore(withGrn ? grnVal / withGrn : 0), 'mean per received PO', '#1d9e75'],
+          ['Highest PO Value', crore(maxBy('poValue')), 'largest single PO', '#163a5c'],
+          ['Highest GRN Value', crore(maxBy('grnValue')), 'largest single GRN', '#0a66c2'],
+        ];
       }
-      const sumKey = k => POGIN_CONFIG.DIV_ORDER.reduce((s, d) => s + (DIV[d] ? DIV[d][k] : 0), 0);
-      function charts() {
+      /* ---------- dynamic charts (Cr, respect filters) ---------- */
+      function groupSum(v, key, val) { const m = {}; v.forEach(r => { const k = r[key] || '\u2014'; m[k] = (m[k] || 0) + (r[val] || 0); }); return m; }
+      function charts(view) {
+        const v = view || [];
         const opts = g => ({ responsive: true, maintainAspectRatio: false, ...g });
-        const divs = POGIN_CONFIG.DIV_ORDER, COL = { closed: '#1d9e75', open: '#f59e0b', cancelled: '#d8504c', shortclosed: '#8a98a4' };
+        const crAxis = { ticks: { callback: x => fmtN(x, 2) } };
+        const tipCr = { callbacks: { label: c => ' ' + fmtN(c.parsed.y != null ? c.parsed.y : c.parsed.x, 2) + ' Cr' } };
+        const ORDER = POGIN_CONFIG.DIV_ORDER;
+        const statusCol = { Open: '#f59e0b', Closed: '#1d9e75', Cancelled: '#d8504c', 'Short Closed': '#8a98a4' };
+        // by division
+        const dPo = groupSum(v, 'division', 'poValue'), dGrn = groupSum(v, 'division', 'grnValue');
+        const divs = ORDER.filter(d => dPo[d] || dGrn[d]);
+        // by department (top 10 by grn)
+        const dep = groupSum(v, 'department', 'grnValue'); const depTop = Object.entries(dep).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        // by vendor (top 10 by grn)
+        const ven = groupSum(v, 'party', 'grnValue'); const venTop = Object.entries(ven).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        // by site (top 8 by grn)
+        const st = groupSum(v, 'site', 'grnValue'); const stTop = Object.entries(st).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        // monthly trend
+        const mp = {}, mg = {}; v.forEach(r => { if (r.poDate) { const k = monKey(r.poDate); mp[k] = (mp[k] || 0) + r.poValue; } if (r.grnDate) { const k = monKey(r.grnDate); mg[k] = (mg[k] || 0) + r.grnValue; } });
+        const mk = [...new Set([...Object.keys(mp), ...Object.keys(mg)])].sort();
+        const mlab = mk.map(m => { const [y, mm] = m.split('-'); return new Date(y, mm - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }); });
+        // status counts
+        const sc = {}; v.forEach(r => sc[r.status] = (sc[r.status] || 0) + 1); const scK = Object.keys(statusCol).filter(k => sc[k]);
         return [
           {
-            title: 'PO status by division', sub: 'open / closed / cancelled / short-closed', height: 330, legend: true, render(cv) {
-              cv._legend = Object.entries(COL).map(([k, c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('');
+            title: 'PO value vs GRN value by division', sub: '\u20b9 Cr \u00b7 BR vs AW', height: 330, legend: true, render(cv) {
+              cv._legend = '<span><i style="background:#2f6db0"></i>PO value</span><span><i style="background:#1d9e75"></i>GRN value</span>';
               return new Chart(cv, {
-                type: 'bar', data: { labels: divs, datasets: ['closed', 'open', 'cancelled', 'shortclosed'].map(k => ({ label: k, data: divs.map(d => DIV[d][k]), backgroundColor: COL[k] })) },
-                options: opts({ plugins: { legend: { display: false } }, scales: { x: { stacked: true, ticks: { maxRotation: 50, font: { size: 10 } } }, y: { stacked: true } } })
+                type: 'bar', data: {
+                  labels: divs, datasets: [
+                    { label: 'PO', data: divs.map(d => crN(dPo[d])), backgroundColor: '#2f6db0', borderRadius: 5 },
+                    { label: 'GRN', data: divs.map(d => crN(dGrn[d])), backgroundColor: '#1d9e75', borderRadius: 5 }]
+                },
+                options: opts({ plugins: { legend: { display: false }, tooltip: tipCr }, scales: { y: crAxis, x: { ticks: { maxRotation: 50, font: { size: 10 } } } } })
               });
             }
           },
           {
-            title: 'PO value by division', sub: '\u20b9 basic value (col BR)', height: 330, render(cv) {
+            title: 'GRN value by department', sub: '\u20b9 Cr \u00b7 top 10 (col AW)', height: 330, render(cv) {
               return new Chart(cv, {
-                type: 'bar', data: { labels: divs, datasets: [{ data: divs.map(d => Math.round(DIV[d].poval)), backgroundColor: '#2f6db0', borderRadius: 5 }] },
-                options: opts({ plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => fmtN(v) } }, x: { ticks: { maxRotation: 50, font: { size: 10 } } } } })
+                type: 'bar', data: { labels: depTop.map(x => x[0]), datasets: [{ data: depTop.map(x => crN(x[1])), backgroundColor: '#0a66c2', borderRadius: 5 }] },
+                options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtN(c.parsed.x, 2) + ' Cr' } } }, scales: { x: crAxis, y: { ticks: { font: { size: 10 } } } } })
               });
             }
           },
           {
-            title: 'PO value by category', sub: 'top 12 \u00b7 ITEM CLASS', height: 330, render(cv) {
-              const e = Object.entries(CAT).sort((a, b) => b[1] - a[1]).slice(0, 12);
+            title: 'GRN value by vendor', sub: '\u20b9 Cr \u00b7 top 10 parties (col AW)', height: 330, render(cv) {
               return new Chart(cv, {
-                type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1])), backgroundColor: '#f59e0b', borderRadius: 5 }] },
-                options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: v => fmtN(v) } }, y: { ticks: { font: { size: 10 } } } } })
+                type: 'bar', data: { labels: venTop.map(x => x[0]), datasets: [{ data: venTop.map(x => crN(x[1])), backgroundColor: '#7c5cbf', borderRadius: 5 }] },
+                options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtN(c.parsed.x, 2) + ' Cr' } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } })
               });
             }
           },
           {
-            title: 'Monthwise procurement', sub: 'PO basic vs GRN taxable', height: 330, legend: true, render(cv) {
-              const mk = Object.keys(MON).sort(); cv._legend = '<span><i style="background:#2f6db0"></i>PO value</span><span><i style="background:#1d9e75"></i>GRN value</span>';
+            title: 'GRN value by site', sub: '\u20b9 Cr \u00b7 top 8 locations (col AW)', height: 330, render(cv) {
               return new Chart(cv, {
-                type: 'bar', data: { labels: mk, datasets: [{ label: 'PO', data: mk.map(m => Math.round(MON[m].po)), backgroundColor: '#2f6db0', borderRadius: 4 }, { label: 'GRN', data: mk.map(m => Math.round(MON[m].grn)), backgroundColor: '#1d9e75', borderRadius: 4 }] },
-                options: opts({ plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => fmtN(v) } } } })
+                type: 'bar', data: { labels: stTop.map(x => x[0]), datasets: [{ data: stTop.map(x => crN(x[1])), backgroundColor: '#0891b2', borderRadius: 5 }] },
+                options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtN(c.parsed.x, 2) + ' Cr' } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } })
+              });
+            }
+          },
+          {
+            title: 'Monthly procurement trend', sub: '\u20b9 Cr \u00b7 PO basic vs GRN taxable', height: 330, legend: true, render(cv) {
+              cv._legend = '<span><i style="background:#2f6db0"></i>PO value</span><span><i style="background:#1d9e75"></i>GRN value</span>';
+              return new Chart(cv, {
+                type: 'line', data: {
+                  labels: mlab, datasets: [
+                    { label: 'PO', data: mk.map(m => crN(mp[m])), borderColor: '#2f6db0', backgroundColor: 'rgba(47,109,176,.12)', fill: true, tension: .3, pointRadius: 3 },
+                    { label: 'GRN', data: mk.map(m => crN(mg[m])), borderColor: '#1d9e75', backgroundColor: 'rgba(29,158,117,.12)', fill: true, tension: .3, pointRadius: 3 }]
+                },
+                options: opts({ plugins: { legend: { display: false }, tooltip: tipCr }, scales: { y: crAxis } })
+              });
+            }
+          },
+          {
+            title: 'PO count by status', sub: 'open / closed / cancelled / short-closed', height: 330, legend: true, render(cv) {
+              cv._legend = scK.map(k => `<span><i style="background:${statusCol[k]}"></i>${k} ${sc[k]}</span>`).join('');
+              return new Chart(cv, {
+                type: 'doughnut', data: { labels: scK, datasets: [{ data: scK.map(k => sc[k]), backgroundColor: scK.map(k => statusCol[k]), borderWidth: 2, borderColor: '#fff' }] },
+                options: opts({ cutout: '58%', plugins: { legend: { display: false } } })
               });
             }
           },
         ];
       }
-      const columns = [{ key: 'sr', label: 'Sr. No.', type: 'text' }, { key: 'div', label: 'Division', type: 'text' },
-      { key: 'total', label: 'Total PO Created', type: 'int' }, { key: 'cancelled', label: 'Cancelled PO', type: 'int' },
-      { key: 'shortclosed', label: 'Short Closed PO', type: 'int' }, { key: 'closed', label: 'Closed PO', type: 'int' },
-      { key: 'open', label: 'Open PO', type: 'int' }, { key: 'poval', label: 'PO Value (BR)', type: 'num2' },
-      { key: 'grnval', label: 'GRN Value (AW)', type: 'num2' }];
-      const tableColumns = columns.map(c => ({ key: c.key, label: c.label, fmt: c.type === 'num2' ? 'num2' : c.type === 'int' ? 'int' : 'text' }));
+      const columns = [
+        { key: 'po', label: 'PO Number', type: 'text' }, { key: 'poDate', label: 'PO Date', type: 'date' },
+        { key: 'division', label: 'Division', type: 'text' }, { key: 'department', label: 'Department', type: 'text' },
+        { key: 'site', label: 'Site', type: 'text' }, { key: 'party', label: 'Vendor / Party', type: 'text' },
+        { key: 'status', label: 'PO Status', type: 'text' }, { key: 'poValue', label: 'PO Value', type: 'num2' },
+        { key: 'grnNo', label: 'GRN No', type: 'text' }, { key: 'grnDate', label: 'GRN Date', type: 'date' },
+        { key: 'grnValue', label: 'GRN Value', type: 'num2' }, { key: 'billNo', label: 'Bill No', type: 'text' }];
+      const tableColumns = [
+        { key: 'po', label: 'PO Number', fmt: 'text' }, { key: 'poDate', label: 'PO Date', fmt: 'date' },
+        { key: 'division', label: 'Division', fmt: 'text' }, { key: 'department', label: 'Department', fmt: 'text' },
+        { key: 'site', label: 'Site', fmt: 'text' }, { key: 'party', label: 'Vendor / Party', fmt: 'text' },
+        { key: 'status', label: 'Status', fmt: 'status' }, { key: 'poValue', label: 'PO Value', fmt: 'cr' },
+        { key: 'grnNo', label: 'GRN No', fmt: 'text' }, { key: 'grnDate', label: 'GRN Date', fmt: 'date' },
+        { key: 'grnValue', label: 'GRN Value', fmt: 'cr' }, { key: 'billNo', label: 'Bill No', fmt: 'text' }];
+      const filters = [
+        { key: 'division', label: 'Division', multi: true },
+        { key: 'department', label: 'Department', multi: true },
+        { key: 'status', label: 'PO Status', multi: true },
+        { key: 'site', label: 'Site', multi: true },
+        { key: 'party', label: 'Vendor / Party', multi: true },
+        { key: 'poDate', label: 'PO Date range', type: 'daterange' },
+        { key: 'grnDate', label: 'GRN Date range', type: 'daterange' },
+        { key: 'poValue', label: 'PO Value \u20b9 (min\u2013max)', type: 'range' },
+        { key: 'grnValue', label: 'GRN Value \u20b9 (min\u2013max)', type: 'range' }];
 
-      /* ---- exact-format 8-section Excel export (matches the reference layout) ---- */
+      /* ---------- exact-format 8-section Excel export ---------- */
       async function exportExcel(fileName) {
         const wb = new ExcelJS.Workbook(); wb.creator = 'Vision Infra Report Analyzer';
         const ws = wb.addWorksheet('SUMMARY', { views: [{ showGridLines: false }] });
@@ -2576,9 +2698,8 @@
         const NAVY = 'FF163A5C', TITLE = 'FFDCE6F1', HEAD = 'FFB8CCE4', TOTAL = 'FFD7E1F2', GREY = 'FFF3F6FB';
         const med = { style: 'medium', color: { argb: 'FF8FA8C8' } }, thin = { style: 'thin', color: { argb: 'FFBFCBDD' } };
         const box = b => ({ top: b, left: b, bottom: b, right: b });
-        const ACC = '#,##0.00';
-        let r = 1;
-        const setRow = (h) => { ws.getRow(r).height = h; };
+        const ACC = '#,##0.00'; let r = 1;
+        const setRow = h => { ws.getRow(r).height = h; };
         const merge = (c1, c2) => ws.mergeCells(r, c1, r, c2);
         const cell = (c, v, o = {}) => {
           const x = ws.getCell(r, c); if (v && v.formula) x.value = { formula: v.formula }; else x.value = v;
@@ -2588,82 +2709,59 @@
           if (o.fmt) x.numFmt = o.fmt; x.border = box(o.bd || thin); return x;
         };
         const titleRow = (text, span) => {
-          setRow(20); merge(1, span); cell(1, text, { bold: true, sz: span > 7 ? 12 : 12, fill: TITLE, bd: med });
-          for (let c = 2; c <= 11; c++) { const x = ws.getCell(r, c); x.border = box(med); if (c <= span) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TITLE } }; }
-          r++;
+          setRow(20); merge(1, span); cell(1, text, { bold: true, sz: 12, fill: TITLE, bd: med });
+          for (let c = 2; c <= 11; c++) { const x = ws.getCell(r, c); x.border = box(med); if (c <= span) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TITLE } }; } r++;
         };
-        const headRow = (labels, opts = {}) => { setRow(26); labels.forEach((l, i) => cell(i + 1, l, { bold: true, fill: HEAD, wrap: true, sz: 9.5, fmt: opts.dates && i >= 2 ? 'mmm-yy' : null, al: i === 1 && !opts.catLeft ? 'left' : 'center' })); r++; };
+        const headRow = (labels, opts = {}) => { setRow(26); labels.forEach((l, i) => cell(i + 1, l, { bold: true, fill: HEAD, wrap: true, sz: 9.5, fmt: opts.dates && i >= 2 ? 'mmm-yy' : null, al: i === 1 ? 'left' : 'center' })); r++; };
         const dataRow = (sr, name, vals, opts = {}) => {
-          setRow(15);
-          cell(1, sr, {}); cell(2, name, { al: 'left', bold: false });
+          setRow(15); cell(1, sr, {}); cell(2, name, { al: 'left' });
           vals.forEach((v, i) => cell(i + 3, v, { al: 'right', fmt: opts.fmt || '#,##0', fill: (r % 2 ? GREY : null) })); r++;
         };
-        const totalRow = (span, firstCol, lastCol, dataFrom, dataTo, fmt) => {
+        const totalRow = (firstCol, lastCol, d0, d1, fmt) => {
           setRow(16); merge(1, 2); cell(1, 'Total', { bold: true, fill: TOTAL, bd: med });
           ws.getCell(r, 2).border = box(med);
-          for (let c = firstCol; c <= lastCol; c++) {
-            const L = ws.getColumn(c).letter;
-            cell(c, { formula: `SUM(${L}${dataFrom}:${L}${dataTo})` }, { bold: true, fill: TOTAL, al: 'right', fmt: fmt || '#,##0', bd: med });
-          }
-          r++;
+          for (let c = firstCol; c <= lastCol; c++) { const L = ws.getColumn(c).letter; cell(c, { formula: `SUM(${L}${d0}:${L}${d1})` }, { bold: true, fill: TOTAL, al: 'right', fmt: fmt || '#,##0', bd: med }); } r++;
         };
         const blank = () => { setRow(6); r++; };
         const S = SECT, ORDER = S.order;
-        const dF = POGIN_CONFIG.dateFrom, dT = POGIN_CONFIG.dateTo;
-        const lbl = (s) => { const m = { '2026-04-01': '1st April 2026', '2026-06-10': '10th Jun 2026', '2026-05-19': '19th May 2026' }; return m[s] || s; };
-        const win = `( ${lbl(dF)} to ${lbl(dT)} )`, cwin = `( ${lbl(POGIN_CONFIG.convFrom)} to ${lbl(POGIN_CONFIG.convTo)} )`;
-
-        // banner
+        const lbl = s => ({ '2026-04-01': '1st April 2026', '2026-06-10': '10th Jun 2026', '2026-05-19': '19th May 2026' }[s] || s);
+        const win = `( ${lbl(POGIN_CONFIG.dateFrom)} to ${lbl(POGIN_CONFIG.dateTo)} )`, cwin = `( ${lbl(POGIN_CONFIG.convFrom)} to ${lbl(POGIN_CONFIG.convTo)} )`;
         titleRow(COMPANY.name || 'Vision Infra Equipment Solutions Limited', 7);
         titleRow('Weekly Review Meeting Report- Purchase', 7); blank();
-        // ---- 1. Open PO Status ----
         titleRow('Open PO Status Report ' + win, 7);
         headRow(['Sr. No.', 'Division', 'Total PO Created', 'Cancelled PO', 'Short Closed PO', 'Closed PO', 'Open PO']);
         let d0 = r; ORDER.forEach((d, i) => { const x = DIV[d]; dataRow(i + 1, d, [x.total, x.cancelled, x.shortclosed, x.closed, x.open]); });
-        totalRow(2, 3, 7, d0, r - 1); blank();
-        // ---- 2. Open PO Aging ----
+        totalRow(3, 7, d0, r - 1); blank();
         titleRow('Open PO Aging Report ' + win, 7);
         headRow(['Sr. No.', 'Division', 'Total Open PO', '< 07 Days', '08 - 15 Days', '16 - 30 Days', '> 31 Days']);
         d0 = r; ORDER.forEach((d, i) => { const a = S.aging[d]; dataRow(i + 1, d, [a[0] + a[1] + a[2] + a[3], a[0], a[1], a[2], a[3]]); });
-        totalRow(2, 3, 7, d0, r - 1); blank();
-        // ---- 3. PO to GRN Conversion ----
+        totalRow(3, 7, d0, r - 1); blank();
         titleRow('PO to GRN Conversion Timeline Status weekly ' + cwin, 7);
         headRow(['Sr. No.', 'Division', 'Total PO', '< 07 Days', '08 - 15 Days', '16 - 30 Days', '> 31 Days']);
         d0 = r; ORDER.forEach((d, i) => { const a = S.conv[d]; dataRow(i + 1, d, [a[0] + a[1] + a[2] + a[3], a[0], a[1], a[2], a[3]]); });
-        totalRow(2, 3, 7, d0, r - 1); blank();
-        // ---- 4. Weekly Procurement Trend (Division) ----
+        totalRow(3, 7, d0, r - 1); blank();
         titleRow('Weekly Procurement Trend', 7);
         headRow(['Sr. No.', 'Division', ...S.weekLabels]);
         d0 = r; ORDER.forEach((d, i) => dataRow(i + 1, d, S.wkDiv[d], { fmt: ACC }));
-        totalRow(2, 3, 7, d0, r - 1, ACC); blank();
-        // ---- 5. Weekly Procurement Trend (Category) ----
+        totalRow(3, 7, d0, r - 1, ACC); blank();
         titleRow('Weekly Procurement Trend category wise', 7);
         headRow(['Sr. No.', 'CATEGORY', ...S.weekLabels]);
         const cats = Object.keys(S.wkCat).sort(); d0 = r;
-        cats.forEach((c, i) => dataRow(i + 1, c, S.wkCat[c], { fmt: ACC }));
-        totalRow(2, 3, 7, d0, r - 1, ACC); blank();
-        // ---- 6. Weekly Procurement Trend Division wise (last week) ----
-        titleRow('Weekly Procurement Trend Division wise ( ' + lbl(POGIN_CONFIG.convFrom) + ' to ' + lbl(POGIN_CONFIG.convTo) + ' )', 11);
+        cats.forEach((c, i) => dataRow(i + 1, c, S.wkCat[c], { fmt: ACC })); totalRow(3, 7, d0, r - 1, ACC); blank();
+        titleRow('Weekly Procurement Trend Division wise ' + cwin, 11);
         const dwCols = ORDER.map(d => d === 'REFURBISHMENT' ? 'TRADING' : d);
         headRow(['Sr. No.', 'CATEGORY', ...dwCols]);
         const cats2 = Object.keys(S.divWise).sort(); d0 = r;
         cats2.forEach((c, i) => dataRow(i + 1, c, ORDER.map(d => S.divWise[c][d] || 0), { fmt: ACC }));
-        {
-          setRow(16); merge(1, 2); cell(1, 'Total', { bold: true, fill: TOTAL, bd: med }); ws.getCell(r, 2).border = box(med);
-          for (let c = 3; c <= 11; c++) { const L = ws.getColumn(c).letter; cell(c, { formula: `SUM(${L}${d0}:${L}${r - 1})` }, { bold: true, fill: TOTAL, al: 'right', fmt: ACC, bd: med }); } r++;
-        }
-        blank();
-        // ---- 7. Monthwise Procurement (GRN based) ----
+        totalRow(3, 11, d0, r - 1, ACC); blank();
         titleRow('Monthwise Procurement Summary GRN based ' + win, 2 + S.months.length);
         headRow(['Sr. No.', 'Division', ...S.months.map(m => new Date(m + '-01'))], { dates: true });
         d0 = r; ORDER.forEach((d, i) => dataRow(i + 1, d, S.months.map(m => S.monGrn[d][m] || 0), { fmt: ACC }));
-        totalRow(2, 3, 2 + S.months.length, d0, r - 1, ACC); blank();
-        // ---- 8. Monthwise Procurement (PO based) ----
+        totalRow(3, 2 + S.months.length, d0, r - 1, ACC); blank();
         titleRow('Monthwise Procurement Summary ' + win, 2 + S.months.length);
         headRow(['Sr. No.', 'Division', ...S.months.map(m => new Date(m + '-01'))], { dates: true });
         d0 = r; ORDER.forEach((d, i) => dataRow(i + 1, d, S.months.map(m => S.monPo[d][m] || 0), { fmt: ACC }));
-        totalRow(2, 3, 2 + S.months.length, d0, r - 1, ACC);
-
+        totalRow(3, 2 + S.months.length, d0, r - 1, ACC);
         const buf = await wb.xlsx.writeBuffer();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
@@ -2672,12 +2770,12 @@
 
       return {
         meta: {
-          name: 'PO-GIN-BILL-PAYMENT', tagline: 'Stock \u00b7 Open PO status & 8-section procurement summary from an ERP PO-GIN dump',
+          name: 'PO-GIN-BILL-PAYMENT', tagline: 'Stock \u00b7 procurement analytics \u2014 PO / GRN / Bill / Payment',
           icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2"/><path d="M9 12h6M9 16h6"/></svg>'
         },
-        hint: 'Upload the ERP-generated <b>PO-GIN</b> report (workbook with a <b>Master Data</b> sheet, same format as the sample). The Excel export reproduces the full <b>8-section</b> summary layout. Division roll-up, the date window &amp; weekly buckets are in the editable <b>POGIN_CONFIG</b> block at the top of the file.',
-        sheetName: 'Open PO Status', exportName: 'VisionInfra-PO-GIN-Summary',
-        process, kpis, charts, columns, tableColumns, filters: [], searchKeys: ['div'], exportExcel
+        hint: 'Upload the ERP-generated <b>PO-GIN</b> report (workbook with a <b>Master Data</b> sheet). Filter by division, department, status, site, vendor, date or value \u2014 every KPI &amp; chart updates live, in <b>\u20b9 Cr</b>. The Excel export gives the full <b>8-section</b> summary. Roll-up &amp; window are in <b>POGIN_CONFIG</b> at the top of the file.',
+        sheetName: 'PO-GIN', exportName: 'VisionInfra-PO-GIN-Summary',
+        process, kpis, charts, columns, tableColumns, filters, searchKeys: ['po', 'grnNo', 'billNo', 'party', 'site'], exportExcel
       };
     })();
 
@@ -2735,6 +2833,14 @@
     function buildFilters() {
       const host = document.getElementById('filters'); const fs = PROC.filters || [];
       host.innerHTML = fs.map(f => {
+        if (f.type === 'daterange') {
+          return `<div class="field"><label>${f.label}</label>
+      <div class="rng"><input type="date" data-dr="${f.key}" data-b="lo"><span>–</span><input type="date" data-dr="${f.key}" data-b="hi"></div></div>`;
+        }
+        if (f.type === 'range') {
+          return `<div class="field"><label>${f.label}</label>
+      <div class="rng"><input type="number" step="any" placeholder="min" data-rg="${f.key}" data-b="lo"><span>–</span><input type="number" step="any" placeholder="max" data-rg="${f.key}" data-b="hi"></div></div>`;
+        }
         if (f.multi) {
           msState[f.key] = new Set();
           const opts = uniq(RAW, f.key);
@@ -2743,13 +2849,20 @@
           <button type="button" class="ms-btn" id="msbtn-${f.key}">All ${f.label.toLowerCase()}</button>
           <div class="ms-panel">
             <div class="ms-head"><button data-act="all">Select all</button><button data-act="clear">Clear</button></div>
+            ${opts.length > 12 ? '<input type="search" class="ms-search" placeholder="filter…">' : ''}
             ${opts.map(o => `<label class="msrow"><input type="checkbox" value="${String(o).replace(/"/g, '&quot;')}">${o}</label>`).join('')}
           </div></div></div>`;
         }
         return `<div class="field"><label>${f.label}</label><select data-fk="${f.key}"><option value="">All</option>${uniq(RAW, f.key).map(v => `<option>${v}</option>`).join('')}</select></div>`;
-      }).join('') + (PROC.searchKeys ? `<div class="field grow"><label>Search</label><input type="search" id="fSearch" placeholder="type to filter…"></div>` : '')
+      }).join('') + (PROC.searchKeys ? `<div class="field grow"><label>Search</label><input type="search" id="fSearch" placeholder="PO / GRN / Bill no, vendor, anything…"></div>` : '')
         + `<span class="pill" id="rowCount"></span>`;
       host.querySelectorAll('select[data-fk]').forEach(s => s.onchange = applyFilters);
+      host.querySelectorAll('input[data-rg],input[data-dr]').forEach(inp => inp.oninput = applyFilters);
+      host.querySelectorAll('.ms-search').forEach(si => si.oninput = e => {
+        e.stopPropagation(); const q = norm(si.value);
+        si.parentElement.querySelectorAll('.msrow').forEach(row => { row.style.display = norm(row.textContent).includes(q) ? '' : 'none'; });
+      });
+      host.querySelectorAll('.ms-search').forEach(si => si.onclick = e => e.stopPropagation());
       const se = document.getElementById('fSearch'); if (se) se.oninput = applyFilters;
       host.querySelectorAll('.ms').forEach(ms => {
         const fk = ms.dataset.fk; const btn = ms.querySelector('.ms-btn');
@@ -2770,9 +2883,14 @@
     function applyFilters() {
       const sels = [...document.querySelectorAll('#filters select[data-fk]')].map(s => [s.dataset.fk, s.value]);
       const q = norm((document.getElementById('fSearch') || {}).value || '');
+      const ranges = {}, dates = {};
+      document.querySelectorAll('#filters input[data-rg]').forEach(i => { const k = i.dataset.rg; (ranges[k] = ranges[k] || {})[i.dataset.b] = i.value === '' ? null : parseFloat(i.value); });
+      document.querySelectorAll('#filters input[data-dr]').forEach(i => { const k = i.dataset.dr; (dates[k] = dates[k] || {})[i.dataset.b] = i.value ? new Date(i.value) : null; });
       VIEW = RAW.filter(r => {
         for (const [k, v] of sels) { if (v && String(r[k]) !== v) return false; }
         for (const k of Object.keys(msState)) { const set = msState[k]; if (set.size && !set.has(String(r[k]))) return false; }
+        for (const k in ranges) { const { lo, hi } = ranges[k]; const v = +r[k] || 0; if (lo != null && v < lo) return false; if (hi != null && v > hi) return false; }
+        for (const k in dates) { const { lo, hi } = dates[k]; const v = r[k]; if (lo && (!v || v < lo)) return false; if (hi && (!v || v > new Date(hi.getTime() + 864e5 - 1))) return false; }
         if (q && PROC.searchKeys) { if (!norm(PROC.searchKeys.map(k => r[k]).join(' ')).includes(q)) return false; }
         return true;
       });
@@ -2785,7 +2903,7 @@
     }
     function renderKpis() {
       document.getElementById('kpis').innerHTML = PROC.kpis(VIEW).map(([l, v, s, c]) =>
-        `<div class="kpi"><div class="lab"><span class="dot" style="background:${c}"></span>${l}</div><div class="val">${v}</div><div class="sub">${s}</div></div>`).join('');
+        `<div class="kpi" style="--accent:${c}"><div class="lab"><span class="dot" style="background:${c}"></span>${l}</div><div class="val">${v}</div><div class="sub">${s}</div></div>`).join('');
     }
     function renderCharts() {
       chartObjs.forEach(c => c && c.destroy()); chartObjs = []; const specs = PROC.charts(VIEW) || []; const host = document.getElementById('charts');
@@ -2805,6 +2923,8 @@
     function fmtCell(v, fmt) {
       if (fmt === 'date') return v && v.toLocaleDateString ? v.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (v || '—');
       if (fmt === 'int') return fmtN(v); if (fmt === 'num2') return fmtN(v, 2);
+      if (fmt === 'cr') return crore(v);
+      if (fmt === 'status') { const m = { 'Open': 'b-mid', 'Closed': 'b-hi', 'Cancelled': 'b-lo', 'Short Closed': 'b-lo', 'Pending': 'b-mid' }; return `<span class="badge ${m[v] || 'b-mid'}">${v || '—'}</span>`; }
       if (fmt === 'util') { const ub = v >= .5 ? 'b-hi' : v >= .2 ? 'b-mid' : 'b-lo'; return `<span class="badge ${ub}">${fmtPct(v || 0)}</span>`; }
       return (v === '' || v == null) ? '—' : String(v);
     }
@@ -2919,10 +3039,11 @@
 
     /* ----- footer ----- */
     function fillFooter() {
-      document.getElementById('ftrName').textContent = COMPANY.name; document.getElementById('ftrName2').textContent = COMPANY.name;
-      document.getElementById('ftrAddr').textContent = COMPANY.address;
-      const mail = document.getElementById('ftrMail'); mail.textContent = COMPANY.email; mail.href = 'mailto:' + COMPANY.email;
-      document.getElementById('ftrYear').textContent = new Date().getFullYear();
+      const $ = id => document.getElementById(id);
+      $('ftrName').textContent = COMPANY.name; $('ftrName2').textContent = COMPANY.name;
+      $('ftrYear').textContent = new Date().getFullYear();
+      const ver = $('ftrVer'); if (ver) ver.textContent = 'Version ' + APP_VERSION;
+      const upd = $('ftrUpd'); if (upd) upd.textContent = 'Updated ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
     /* ----- wire-up ----- */
