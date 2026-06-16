@@ -1,920 +1,2806 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VIESL · Report Analyzer</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script>if(typeof XLSX==='undefined'){document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/scr'+'ipt>');}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-/* ===== Supabase config ===== */
-const SUPABASE_URL  = "https://tytzjbvmjtdfxfvftigq.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5dHpqYnZtanRkZnhmdmZ0aWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjk2MjIsImV4cCI6MjA5Njc0NTYyMn0.U3RGs74cssNMmRtMItMCAd4eJC-MmG4fuKH2UMpC1E8";
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIESL · Report Analyzer</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>if (typeof XLSX === 'undefined') { document.write('<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/scr' + 'ipt>'); }</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* ===== Supabase config ===== */
+    const SUPABASE_URL = "https://tytzjbvmjtdfxfvftigq.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5dHpqYnZtanRkZnhmdmZ0aWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjk2MjIsImV4cCI6MjA5Njc0NTYyMn0.U3RGs74cssNMmRtMItMCAd4eJC-MmG4fuKH2UMpC1E8";
 
-/* ====== EDIT THESE: company footer details ====== */
-const COMPANY = {
-  name: "Vision Infra Equipment Solutions Ltd.",
-  address: "Vision Infra Equipment Solutions Limited, 4th floor, International Business Bay, Gurunanak Nagar, Pune 411042, Maharashtra, India.",  /* EDIT */
-  linkedin: "https://www.linkedin.com/company/visioninfraequipmentsolutionslimited/",                       /* EDIT */
-  email: "info@visioninfraindia.com",                                                    /* EDIT */
-  website: "https://www.visioninfraindia.com/"                                            /* EDIT */
-};
-</script>
-<style>
-  :root{
-    --navy:#0e2a43; --navy2:#163a5c; --steel:#2f6db0; --steel2:#3d8ad0; --sky:#e8f1fb;
-    --amber:#f59e0b; --green:#1d9e75; --red:#d8504c; --ink:#13212e; --muted:#5b6b79; --hint:#8a98a4;
-    --line:#e3e8ee; --surface:#ffffff; --canvas:#eef2f7;
-    --r:14px; --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    --sh-sm:0 1px 2px rgba(16,32,48,.06), 0 4px 12px rgba(16,32,48,.06);
-    --sh-md:0 6px 18px rgba(16,32,48,.10), 0 2px 6px rgba(16,32,48,.06);
-    --sh-lg:0 18px 50px rgba(14,42,67,.20);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{max-width:100%;overflow-x:hidden}
-  img{max-width:100%;height:auto}
-  /* let grid/flex children actually shrink on small screens (prevents page overflow) */
-  .kpis,.grid2,.filters,.cards{min-width:0}
-  .kpi,.card,.panel,.tablecard,.chartbox,.field,.ms,.modhead,.rcard{min-width:0;max-width:100%}
-  .chartbox canvas{max-width:100%!important}
-  body{font-family:var(--font);background:
-    radial-gradient(1200px 500px at 80% -10%, #dde9f6 0%, transparent 60%),
-    radial-gradient(900px 500px at -10% 10%, #e6eef7 0%, transparent 55%), var(--canvas);
-    color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
-  .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
-  .btn{font-family:var(--font);font-size:13.5px;font-weight:600;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:transform .12s, box-shadow .12s, background .15s;white-space:nowrap}
-  .btn:active{transform:translateY(1px)}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
-  .btn-amber{background:linear-gradient(180deg,#ffb43a,#f59e0b);color:#3a2700;box-shadow:0 4px 10px rgba(245,158,11,.35)}.btn-amber:hover:not(:disabled){box-shadow:0 6px 16px rgba(245,158,11,.45)}
-  .btn-green{background:linear-gradient(180deg,#27b487,#1d9e75);color:#fff;box-shadow:0 4px 10px rgba(29,158,117,.35)}.btn-green:hover:not(:disabled){box-shadow:0 6px 16px rgba(29,158,117,.45)}
-  .btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.16)}.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.22)}
-  .btn-line{background:#fff;color:var(--navy);border:1px solid var(--line);box-shadow:var(--sh-sm)}.btn-line:hover:not(:disabled){border-color:var(--steel);color:var(--steel)}
+    /* ====== EDIT THESE: company footer details ====== */
+    const COMPANY = {
+      name: "Vision Infra Equipment Solutions Ltd.",
+      address: "Vision Infra Equipment Solutions Limited, 4th floor, International Business Bay, Gurunanak Nagar, Pune 411042, Maharashtra, India.",  /* EDIT */
+      linkedin: "https://www.linkedin.com/company/visioninfraequipmentsolutionslimited/",                       /* EDIT */
+      email: "info@visioninfraindia.com",                                                    /* EDIT */
+      website: "https://www.visioninfraindia.com/"                                            /* EDIT */
+    };
+  </script>
+  <style>
+    :root {
+      --navy: #0e2a43;
+      --navy2: #163a5c;
+      --steel: #2f6db0;
+      --steel2: #3d8ad0;
+      --sky: #e8f1fb;
+      --amber: #f59e0b;
+      --green: #1d9e75;
+      --red: #d8504c;
+      --ink: #13212e;
+      --muted: #5b6b79;
+      --hint: #8a98a4;
+      --line: #e3e8ee;
+      --surface: #ffffff;
+      --canvas: #eef2f7;
+      --r: 14px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --sh-sm: 0 1px 2px rgba(16, 32, 48, .06), 0 4px 12px rgba(16, 32, 48, .06);
+      --sh-md: 0 6px 18px rgba(16, 32, 48, .10), 0 2px 6px rgba(16, 32, 48, .06);
+      --sh-lg: 0 18px 50px rgba(14, 42, 67, .20);
+    }
 
-  /* ===== NAVBAR (3D layered) ===== */
-  header.topbar{position:sticky;top:0;z-index:50;
-    background:linear-gradient(180deg,#16456c 0%, #0e2a43 100%);
-    box-shadow:0 6px 20px rgba(8,24,40,.35), inset 0 -1px 0 rgba(255,255,255,.06);}
-  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;gap:12px}
-  .brand{display:flex;align-items:center;gap:12px}
-  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3d8ad0,#f59e0b);display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;
-    box-shadow:0 6px 14px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.4)}
-  .brand b{font-size:16px;font-weight:700;color:#fff}
-  .brand span{display:block;font-size:10.5px;color:#9fb6cc;font-weight:600;letter-spacing:.6px;text-transform:uppercase}
-  .topbar .actions{display:flex;gap:9px;align-items:center}
-  .userchip{display:flex;align-items:center;gap:9px;color:#fff;margin-right:4px;padding:5px 12px 5px 6px;border-radius:30px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
-  .userchip .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3d8ad0,#2f6db0);display:grid;place-items:center;font-weight:700;font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
-  .userchip .nm{font-size:13px;font-weight:600;line-height:1.1}.userchip .rl{font-size:10px;color:#9fb6cc}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-  main{padding:28px 0 40px;min-height:calc(100vh - 66px - 220px)}
-  .intro{text-align:center;margin-bottom:26px}
-  .intro h1{font-size:27px;font-weight:800;letter-spacing:-.3px;color:var(--navy)}
-  .intro p{color:var(--muted);font-size:14.5px;margin-top:6px}
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden
+    }
 
-  /* report selector cards (3D) */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;max-width:780px;margin:0 auto}
-  .rcard{background:linear-gradient(180deg,#ffffff,#fbfdff);border:1px solid #e7edf4;border-radius:18px;padding:24px;cursor:pointer;transition:transform .18s, box-shadow .18s;text-align:left;position:relative;box-shadow:var(--sh-sm)}
-  .rcard:hover{transform:translateY(-5px);box-shadow:var(--sh-lg)}
-  .rcard .ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#eaf2fc,#dbe9f8);display:grid;place-items:center;margin-bottom:16px;box-shadow:inset 0 1px 0 #fff, 0 6px 14px rgba(47,109,176,.18)}
-  .rcard .ic svg{width:26px;height:26px;stroke:var(--steel)}
-  .rcard h3{font-size:17px;font-weight:700;color:var(--navy)}
-  .rcard p{font-size:12.5px;color:var(--muted);margin-top:6px}
-  .rcard .tag{position:absolute;top:16px;right:16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8a5a06;background:#fdeccd;padding:3px 9px;border-radius:20px}
+    img {
+      max-width: 100%;
+      height: auto
+    }
 
-  .chosen{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:18px;font-size:13.5px;color:var(--muted)}
-  .chip{background:var(--sky);color:var(--steel);font-weight:700;border-radius:20px;padding:5px 14px;font-size:12.5px;box-shadow:var(--sh-sm)}
-  .link{background:none;border:none;color:var(--steel);font-weight:600;cursor:pointer;font-size:13px;text-decoration:underline}
-  .drop{background:linear-gradient(180deg,#ffffff,#f7fafe);border:2px dashed #c4d2e2;border-radius:18px;padding:48px 30px;text-align:center;transition:.18s;cursor:pointer;max-width:780px;margin:0 auto;box-shadow:var(--sh-sm)}
-  .drop.drag{border-color:var(--steel);background:var(--sky);transform:translateY(-2px);box-shadow:var(--sh-md)}
-  .drop .ic{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#eaf2fc,#d8e7f7);display:grid;place-items:center;margin:0 auto 16px;box-shadow:0 8px 18px rgba(47,109,176,.18)}
-  .drop .ic svg{width:30px;height:30px;stroke:var(--steel)}
-  .drop h2{font-size:19px;font-weight:700;color:var(--navy)}.drop p{color:var(--muted);font-size:14px;margin:6px 0 16px}
-  .drop small{display:block;color:var(--hint);font-size:12px;margin-top:14px;max-width:640px;margin-left:auto;margin-right:auto}
-  .alert{border-radius:12px;padding:13px 16px;font-size:13.5px;margin-bottom:16px;box-shadow:var(--sh-sm)}
-  .alert.err{background:#fdeceb;color:#8c2b27;border:1px solid #f6c9c6}
-  .alert.ok{background:#e7f6f0;color:#0f5e45;border:1px solid #b8e6d4}
+    /* let grid/flex children actually shrink on small screens (prevents page overflow) */
+    .kpis,
+    .grid2,
+    .filters,
+    .cards {
+      min-width: 0
+    }
 
-  .loader{position:fixed;inset:0;background:rgba(238,242,247,.82);display:none;place-items:center;z-index:120;backdrop-filter:blur(3px)}
-  .loader.on{display:grid}
-  .spinner{width:46px;height:46px;border:4px solid #d6e0ea;border-top-color:var(--steel);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loader p{color:var(--navy);font-weight:600;font-size:14px;text-align:center}
+    .kpi,
+    .card,
+    .panel,
+    .tablecard,
+    .chartbox,
+    .field,
+    .ms,
+    .modhead,
+    .rcard {
+      min-width: 0;
+      max-width: 100%
+    }
 
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:15px;margin-bottom:18px}
-  .modhead{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,#ffffff,#f4f8fd);border:1px solid #e4ecf5;border-radius:var(--r);padding:15px 18px;margin-bottom:16px;box-shadow:var(--sh-sm)}
-  .modhead .mh-ic{width:46px;height:46px;border-radius:13px;flex:none;background:linear-gradient(135deg,#eaf2fc,#dbe9f8);display:grid;place-items:center;box-shadow:inset 0 1px 0 #fff,0 6px 14px rgba(47,109,176,.18)}
-  .modhead .mh-ic svg{width:24px;height:24px;stroke:var(--steel)}
-  .modhead .mh-t{font-size:16px;font-weight:800;color:var(--navy)}
-  .modhead .mh-s{font-size:12.5px;color:var(--muted)}
-  .modhead .mh-tag{margin-left:auto;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--steel);background:var(--sky);padding:5px 12px;border-radius:20px}
-  .kpi{background:linear-gradient(180deg,#ffffff,#fbfdff);border-radius:var(--r);padding:17px 19px;box-shadow:var(--sh-sm);border:1px solid #e9eef4;transition:transform .15s, box-shadow .15s}
-  .kpi:hover{transform:translateY(-3px);box-shadow:var(--sh-md)}
-  .kpi .lab{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
-  .kpi .lab .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.03)}
-  .kpi .val{font-size:25px;font-weight:800;margin-top:8px;letter-spacing:-.5px;color:var(--navy)}
-  .kpi .sub{font-size:12px;color:var(--hint);margin-top:3px}
-  .panel{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-sm);border:1px solid #e9eef4;padding:16px 18px;margin-bottom:18px}
-  .filters{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
-  .field{display:flex;flex-direction:column;gap:5px}
-  .field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-  select,input[type=search]{font-family:var(--font);font-size:13.5px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;background:#fff;color:var(--ink);min-width:160px;height:40px;box-shadow:inset 0 1px 2px rgba(16,32,48,.04)}
-  select:focus,input:focus{outline:none;border-color:var(--steel);box-shadow:0 0 0 3px var(--sky)}
-  .filters .grow{flex:1;min-width:200px}.filters .grow input{width:100%}
-  .pill{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600;align-self:center}
+    .chartbox canvas {
+      max-width: 100% !important
+    }
 
-  /* multi-select checkbox dropdown */
-  .ms{position:relative;min-width:210px}
-  .ms-btn{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 34px 0 12px;font-size:13.5px;color:var(--ink);text-align:left;cursor:pointer;position:relative;box-shadow:inset 0 1px 2px rgba(16,32,48,.04);font-family:var(--font)}
-  .ms-btn:after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--hint);font-size:11px}
-  .ms-btn:focus,.ms.open .ms-btn{outline:none;border-color:var(--steel);box-shadow:0 0 0 3px var(--sky)}
-  .ms-panel{position:absolute;z-index:30;top:46px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);padding:8px;max-height:300px;overflow:auto;display:none}
-  .ms.open .ms-panel{display:block}
-  .ms-panel .msrow{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;cursor:pointer}
-  .ms-panel .msrow:hover{background:var(--sky)}
-  .ms-panel .msrow input{width:16px;height:16px;min-width:auto;height:16px;accent-color:var(--steel);box-shadow:none}
-  .ms-head{display:flex;justify-content:space-between;padding:4px 9px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
-  .ms-head button{background:none;border:none;color:var(--steel);font-weight:600;font-size:12px;cursor:pointer}
+    body {
+      font-family: var(--font);
+      background:
+        radial-gradient(1200px 500px at 80% -10%, #dde9f6 0%, transparent 60%),
+        radial-gradient(900px 500px at -10% 10%, #e6eef7 0%, transparent 55%), var(--canvas);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      min-height: 100vh
+    }
 
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
-  .card{background:linear-gradient(180deg,#ffffff,#fcfdff);border-radius:var(--r);box-shadow:var(--sh-sm);border:1px solid #e9eef4;padding:18px;transition:box-shadow .15s}
-  .card:hover{box-shadow:var(--sh-md)}
-  .card h3{font-size:15px;font-weight:700;color:var(--navy)}.card .csub{font-size:12px;color:var(--hint);margin-bottom:14px;margin-top:2px}
-  .chartbox{position:relative;width:100%;height:300px}
-  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px}
-  .legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:11px;height:11px;border-radius:3px}
-  .tablecard{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh-sm);border:1px solid #e9eef4;overflow:hidden}
-  .tablecard .thead{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
-  .tablecard h3{font-size:15px;font-weight:700;color:var(--navy)}
-  .scroll{overflow-x:auto;max-height:560px}
-  table{border-collapse:collapse;width:100%;font-size:12.5px}
-  thead th{position:sticky;top:0;background:linear-gradient(180deg,#16456c,#0e2a43);color:#fff;font-weight:600;text-align:left;padding:10px 12px;white-space:nowrap;cursor:pointer;font-size:11.5px}
-  thead th:hover{background:var(--navy2)}thead th .ar{opacity:.6;font-size:10px;margin-left:3px}
-  tbody td{padding:9px 12px;border-bottom:1px solid #eef2f6;white-space:nowrap}
-  tbody tr:nth-child(even){background:#fafbfd}tbody tr:hover{background:var(--sky)}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .badge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
-  .b-hi{background:#e7f6f0;color:#0f5e45}.b-mid{background:#fdeccd;color:#8a5a06}.b-lo{background:#fdeceb;color:#8c2b27}
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 20px
+    }
 
-  /* recent uploads */
-  .recent{max-width:780px;margin:20px auto 0}
-  .recent h4{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-  .recent .list{background:#fff;border:1px solid #e9eef4;border-radius:14px;overflow:hidden;box-shadow:var(--sh-sm)}
-  .recent .row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #eef2f6;font-size:13px;transition:background .12s}
-  .recent .row:last-child{border-bottom:none}.recent .row:hover{background:#f6f9fd}
-  .recent .fi{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#eaf2fc,#d8e7f7);display:grid;place-items:center;flex:none;color:var(--steel);font-weight:700;font-size:10.5px;box-shadow:inset 0 1px 0 #fff}
-  .recent .meta{flex:1;min-width:0}
-  .recent a.fn{font-weight:600;color:var(--steel);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;cursor:pointer;text-decoration:none}
-  .recent a.fn:hover{text-decoration:underline}
-  .recent .fn.plain{color:var(--ink);cursor:default}
-  .recent .mt{font-size:11.5px;color:var(--hint)}
-  .recent .own{font-size:10px;font-weight:700;color:#0f5e45;background:#e7f6f0;padding:2px 7px;border-radius:20px;flex:none}
-  .recent .del{flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--red);cursor:pointer;display:grid;place-items:center;transition:.12s}
-  .recent .del:hover{background:#fdeceb;border-color:#f0b3b0}
-  .recent .ract{display:flex;align-items:center;gap:7px;flex:none}
-  .rbtn{border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;gap:5px;transition:transform .12s, box-shadow .12s}
-  .rbtn:active{transform:translateY(1px)}
-  .rbtn.view{background:linear-gradient(180deg,#3d8ad0,#2f6db0);color:#fff;box-shadow:0 3px 8px rgba(47,109,176,.3)}
-  .rbtn.view:hover{box-shadow:0 5px 14px rgba(47,109,176,.42)}
-  .rbtn.dl{background:#fff;color:var(--navy);border:1px solid var(--line)}.rbtn.dl:hover{border-color:var(--steel);color:var(--steel)}
-  .rbtn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
-  .recent .empty{padding:18px 15px;color:var(--hint);font-size:13px;text-align:center}
+    .btn {
+      font-family: var(--font);
+      font-size: 13.5px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 15px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: transform .12s, box-shadow .12s, background .15s;
+      white-space: nowrap
+    }
 
-  /* ===== AUTH (glassmorphism) ===== */
-  #authView{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;overflow:auto;
-    background:linear-gradient(135deg,#0b2236 0%, #15426a 45%, #2f6db0 120%);}
-  #authView:before{content:'';position:absolute;width:480px;height:480px;border-radius:50%;top:-160px;right:-120px;background:radial-gradient(circle,rgba(245,158,11,.35),transparent 60%);filter:blur(10px)}
-  #authView:after{content:'';position:absolute;width:520px;height:520px;border-radius:50%;bottom:-200px;left:-160px;background:radial-gradient(circle,rgba(61,138,208,.45),transparent 60%);filter:blur(10px)}
-  .auth-card{position:relative;z-index:2;width:100%;max-width:410px;padding:36px 32px;border-radius:22px;
-    background:rgba(255,255,255,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid rgba(255,255,255,.28);box-shadow:0 30px 70px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.4)}
-  .auth-brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:8px}
-  .auth-brand .logo{width:40px;height:40px}
-  .auth-brand b{font-size:19px;color:#fff}
-  .auth-card h2{text-align:center;font-size:20px;font-weight:800;margin-top:16px;color:#fff}
-  .auth-card .sub{text-align:center;color:rgba(255,255,255,.8);font-size:13px;margin:5px 0 22px}
-  .auth-field{margin-bottom:15px}
-  .auth-field label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:6px}
-  .auth-field input{width:100%;height:46px;border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:0 14px;font-size:14px;font-family:var(--font);
-    background:rgba(255,255,255,.92);color:var(--ink);transition:transform .12s, box-shadow .15s, border .15s;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
-  .auth-field input:focus{outline:none;border-color:#fff;transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.18)}
-  .auth-btn{width:100%;height:48px;border:none;border-radius:12px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--font);margin-top:4px;
-    background:linear-gradient(180deg,#3d8ad0,#2f6db0);box-shadow:0 10px 22px rgba(20,60,100,.45), inset 0 1px 0 rgba(255,255,255,.4);transition:transform .12s, box-shadow .12s}
-  .auth-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(20,60,100,.55)}
-  .auth-btn:active{transform:translateY(1px)}
-  .auth-btn:disabled{opacity:.65;cursor:not-allowed}
-  .auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,.82);margin-top:18px}
-  .auth-switch button{background:none;border:none;color:#fff;font-weight:700;cursor:pointer;font-size:13px;text-decoration:underline}
-  .auth-msg{font-size:12.5px;border-radius:10px;padding:10px 13px;margin-bottom:15px;display:none}
-  .auth-msg.err{display:block;background:rgba(216,80,76,.92);color:#fff}
-  .auth-msg.ok{display:block;background:rgba(29,158,117,.92);color:#fff}
+    .btn:active {
+      transform: translateY(1px)
+    }
 
-  /* ===== FOOTER (3D / layered) ===== */
-  footer.site{position:relative;margin-top:48px;color:#c4d2e2;
-    background:
-      radial-gradient(900px 300px at 85% -40%, rgba(61,138,208,.25), transparent 60%),
-      radial-gradient(700px 280px at 0% -20%, rgba(245,158,11,.12), transparent 55%),
-      linear-gradient(180deg,#103352 0%, #0c2841 55%, #081d30 100%);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 -10px 30px rgba(8,24,40,.25)}
-  footer.site:before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-    background:linear-gradient(90deg,#2f6db0,#3d8ad0 40%,#f59e0b);opacity:.85}
-  .ftr-grid{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:32px;padding:40px 20px 28px}
-  .ftr-brand .fbrand{display:flex;align-items:center;gap:13px;margin-bottom:14px}
-  .ftr-logo-wrap{width:54px;height:54px;border-radius:15px;flex:none;
-    background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
-    border:1px solid rgba(255,255,255,.18);display:grid;place-items:center;overflow:hidden;
-    box-shadow:0 10px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35)}
-  .ftr-logo-img{width:100%;height:100%;object-fit:contain;padding:6px}
-  .ftr-logo-wrap .logo{width:54px;height:54px;border-radius:15px;font-size:18px}
-  .ftr-brand .fbrand b{color:#fff;font-size:17px;display:block;line-height:1.15}
-  .ftr-brand .fbrand span{color:#9fb6cc;font-size:11px;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
-  .ftr-addr{max-width:330px;font-size:13px;color:#a9b8c8;line-height:1.7}
-  footer.site h5{color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;font-weight:700}
-  .ftr-col a,.ftr-col p{display:block;font-size:13px;color:#a9b8c8;line-height:2;text-decoration:none;transition:color .15s}
-  .ftr-col a:hover{color:#fff}
-  .socials{display:flex;gap:12px;margin-top:4px}
-  .soc{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#dbe7f4;
-    background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.03));
-    border:1px solid rgba(255,255,255,.16);
-    box-shadow:0 8px 16px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.30);
-    transition:transform .14s, box-shadow .14s, background .14s}
-  .soc:hover{transform:translateY(-4px);background:linear-gradient(160deg,#2f6db0,#0a66c2);color:#fff;box-shadow:0 14px 26px rgba(10,102,194,.45)}
-  .soc svg{width:19px;height:19px;fill:currentColor}
-  .ftr-mail{margin-top:10px}
-  .ftr-contact-cards{display:flex;flex-direction:column;gap:10px;margin-top:4px}
-  .ftr-contact-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:13px 15px;transition:background .15s,border-color .15s}
-  .ftr-contact-card:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.22)}
-  .ftr-contact-name{color:#fff;font-size:12.5px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:9px}
-  .ftr-av{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#3d8ad0,#2f6db0);color:#fff;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none;letter-spacing:.3px;box-shadow:0 4px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.35)}
-  .ftr-contact-row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#a9b8c8;line-height:1.9;text-decoration:none;transition:color .15s}
-  .ftr-contact-row:hover{color:#e8f1fb}
-  .ftr-ci{width:13px;height:13px;fill:currentColor;opacity:.65;flex:none}
-  .ftr-bottom{position:relative;border-top:1px solid rgba(255,255,255,.09);text-align:center;font-size:12px;padding:15px 20px;color:#8090a2;
-    background:rgba(0,0,0,.18)}
-  /* ===================== RESPONSIVE ===================== */
-  @media(max-width:1080px){footer.site .ftr-grid{grid-template-columns:1.4fr 1fr 1.2fr}}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr}footer.site .ftr-grid{grid-template-columns:1fr 1fr}}
-  @media(max-width:860px){.topbar .actions .lbl{display:none}}
-  @media(max-width:680px){
-    .wrap{padding:0 13px}
-    .topbar .wrap{height:auto;flex-wrap:wrap;gap:8px;padding:10px 13px}
-    .topbar .actions{flex-wrap:wrap;gap:7px}
-    .btn{padding:8px 11px;font-size:12.5px}
-    .userchip .nm,.userchip .rl{display:none}.userchip{padding:4px;margin-right:0}
-    main{padding:20px 0 30px}
-    .intro h1{font-size:21px}.intro p{font-size:13px}
-    .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
-    .kpi{padding:13px 14px}.kpi .val{font-size:20px}
-    .modhead{padding:13px 14px;gap:11px}.modhead .mh-tag{margin-left:0}
-    .modhead{flex-wrap:wrap}
-    .card{padding:14px}.card h3{font-size:14px}
-    .chartbox{height:250px!important}
-    .panel{padding:13px 14px}
-    .filters{gap:10px}.field,.ms{width:100%}select,.ms-btn,input[type=search]{min-width:0;width:100%}
-    .pill{margin-left:0;width:100%;text-align:left}
-    .cards{grid-template-columns:1fr}
-    .drop{padding:34px 16px}
-    .auth-card{padding:26px 20px}
-    .tablecard .thead{padding:13px 14px}
-    .recent .row{flex-wrap:wrap}.recent .ract{width:100%;justify-content:flex-end}
-    footer.site .ftr-grid{grid-template-columns:1fr;text-align:center;gap:26px}
-    footer.site .ftr-brand{align-items:center}.ftr-brand .fbrand,.socials{justify-content:center}.ftr-addr{margin:0 auto}
-    .ftr-contact-cards{align-items:center}.ftr-contact-card{max-width:320px;width:100%}.ftr-contact-name{justify-content:center}.ftr-contact-row{justify-content:center}
-    /* ---- table becomes stacked cards: no horizontal scroll ---- */
-    .scroll{overflow-x:visible;max-height:none}
-    #tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-    #tbl,#tbl tbody{display:block;width:100%}
-    #tbl tr{display:block;margin:12px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--sh-sm);background:#fff!important}
-    #tbl td{display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:right;padding:9px 14px;border-bottom:1px solid #eef2f6;white-space:normal}
-    #tbl td:before{content:attr(data-label);font-weight:600;color:var(--muted);text-align:left;flex:none;font-size:12px}
-    #tbl td:last-child{border-bottom:none}
-    #tbl td.num{font-variant-numeric:tabular-nums}
-  }
-  @media(max-width:420px){
-    .intro h1{font-size:19px}.kpi .val{font-size:18px}.btn .lbl{display:none}
-    .kpis{grid-template-columns:1fr 1fr;gap:9px}
-    .auth-card{padding:22px 16px}
-    .chartbox{height:230px!important}
-  }
-  @media(max-width:340px){.kpis{grid-template-columns:1fr}}
-  @media print{header.topbar,.drop,.filters,.thead .btn,footer.site{display:none!important}body{background:#fff}.card,.kpi,.tablecard,.panel{box-shadow:none}}
-</style>
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .btn-amber {
+      background: linear-gradient(180deg, #ffb43a, #f59e0b);
+      color: #3a2700;
+      box-shadow: 0 4px 10px rgba(245, 158, 11, .35)
+    }
+
+    .btn-amber:hover:not(:disabled) {
+      box-shadow: 0 6px 16px rgba(245, 158, 11, .45)
+    }
+
+    .btn-green {
+      background: linear-gradient(180deg, #27b487, #1d9e75);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(29, 158, 117, .35)
+    }
+
+    .btn-green:hover:not(:disabled) {
+      box-shadow: 0 6px 16px rgba(29, 158, 117, .45)
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .16)
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: rgba(255, 255, 255, .22)
+    }
+
+    .btn-line {
+      background: #fff;
+      color: var(--navy);
+      border: 1px solid var(--line);
+      box-shadow: var(--sh-sm)
+    }
+
+    .btn-line:hover:not(:disabled) {
+      border-color: var(--steel);
+      color: var(--steel)
+    }
+
+    /* ===== NAVBAR (3D layered) ===== */
+    header.topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: linear-gradient(180deg, #16456c 0%, #0e2a43 100%);
+      box-shadow: 0 6px 20px rgba(8, 24, 40, .35), inset 0 -1px 0 rgba(255, 255, 255, .06);
+    }
+
+    .topbar .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 66px;
+      gap: 12px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3d8ad0, #f59e0b);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 15px;
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .4)
+    }
+
+    .brand b {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .brand span {
+      display: block;
+      font-size: 10.5px;
+      color: #9fb6cc;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase
+    }
+
+    .topbar .actions {
+      display: flex;
+      gap: 9px;
+      align-items: center
+    }
+
+    .userchip {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #fff;
+      margin-right: 4px;
+      padding: 5px 12px 5px 6px;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .userchip .av {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3d8ad0, #2f6db0);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3)
+    }
+
+    .userchip .nm {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.1
+    }
+
+    .userchip .rl {
+      font-size: 10px;
+      color: #9fb6cc
+    }
+
+    main {
+      padding: 28px 0 40px;
+      min-height: calc(100vh - 66px - 220px)
+    }
+
+    .intro {
+      text-align: center;
+      margin-bottom: 26px
+    }
+
+    .intro h1 {
+      font-size: 27px;
+      font-weight: 800;
+      letter-spacing: -.3px;
+      color: var(--navy)
+    }
+
+    .intro p {
+      color: var(--muted);
+      font-size: 14.5px;
+      margin-top: 6px
+    }
+
+    /* report selector cards (3D) */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      max-width: 780px;
+      margin: 0 auto
+    }
+
+    .rcard {
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border: 1px solid #e7edf4;
+      border-radius: 18px;
+      padding: 24px;
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s;
+      text-align: left;
+      position: relative;
+      box-shadow: var(--sh-sm)
+    }
+
+    .rcard:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--sh-lg)
+    }
+
+    .rcard .ic {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #eaf2fc, #dbe9f8);
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      box-shadow: inset 0 1px 0 #fff, 0 6px 14px rgba(47, 109, 176, .18)
+    }
+
+    .rcard .ic svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--steel)
+    }
+
+    .rcard h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--navy)
+    }
+
+    .rcard p {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 6px
+    }
+
+    .rcard .tag {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: #8a5a06;
+      background: #fdeccd;
+      padding: 3px 9px;
+      border-radius: 20px
+    }
+
+    .chosen {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 18px;
+      font-size: 13.5px;
+      color: var(--muted)
+    }
+
+    .chip {
+      background: var(--sky);
+      color: var(--steel);
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12.5px;
+      box-shadow: var(--sh-sm)
+    }
+
+    .link {
+      background: none;
+      border: none;
+      color: var(--steel);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline
+    }
+
+    .drop {
+      background: linear-gradient(180deg, #ffffff, #f7fafe);
+      border: 2px dashed #c4d2e2;
+      border-radius: 18px;
+      padding: 48px 30px;
+      text-align: center;
+      transition: .18s;
+      cursor: pointer;
+      max-width: 780px;
+      margin: 0 auto;
+      box-shadow: var(--sh-sm)
+    }
+
+    .drop.drag {
+      border-color: var(--steel);
+      background: var(--sky);
+      transform: translateY(-2px);
+      box-shadow: var(--sh-md)
+    }
+
+    .drop .ic {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #eaf2fc, #d8e7f7);
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 18px rgba(47, 109, 176, .18)
+    }
+
+    .drop .ic svg {
+      width: 30px;
+      height: 30px;
+      stroke: var(--steel)
+    }
+
+    .drop h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--navy)
+    }
+
+    .drop p {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 6px 0 16px
+    }
+
+    .drop small {
+      display: block;
+      color: var(--hint);
+      font-size: 12px;
+      margin-top: 14px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto
+    }
+
+    .alert {
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 13.5px;
+      margin-bottom: 16px;
+      box-shadow: var(--sh-sm)
+    }
+
+    .alert.err {
+      background: #fdeceb;
+      color: #8c2b27;
+      border: 1px solid #f6c9c6
+    }
+
+    .alert.ok {
+      background: #e7f6f0;
+      color: #0f5e45;
+      border: 1px solid #b8e6d4
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(238, 242, 247, .82);
+      display: none;
+      place-items: center;
+      z-index: 120;
+      backdrop-filter: blur(3px)
+    }
+
+    .loader.on {
+      display: grid
+    }
+
+    .spinner {
+      width: 46px;
+      height: 46px;
+      border: 4px solid #d6e0ea;
+      border-top-color: var(--steel);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 14px
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .loader p {
+      color: var(--navy);
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 15px;
+      margin-bottom: 18px
+    }
+
+    .modhead {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(180deg, #ffffff, #f4f8fd);
+      border: 1px solid #e4ecf5;
+      border-radius: var(--r);
+      padding: 15px 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--sh-sm)
+    }
+
+    .modhead .mh-ic {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      flex: none;
+      background: linear-gradient(135deg, #eaf2fc, #dbe9f8);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 #fff, 0 6px 14px rgba(47, 109, 176, .18)
+    }
+
+    .modhead .mh-ic svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--steel)
+    }
+
+    .modhead .mh-t {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--navy)
+    }
+
+    .modhead .mh-s {
+      font-size: 12.5px;
+      color: var(--muted)
+    }
+
+    .modhead .mh-tag {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--steel);
+      background: var(--sky);
+      padding: 5px 12px;
+      border-radius: 20px
+    }
+
+    .kpi {
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border-radius: var(--r);
+      padding: 17px 19px;
+      box-shadow: var(--sh-sm);
+      border: 1px solid #e9eef4;
+      transition: transform .15s, box-shadow .15s
+    }
+
+    .kpi:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--sh-md)
+    }
+
+    .kpi .lab {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .kpi .lab .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, .03)
+    }
+
+    .kpi .val {
+      font-size: 25px;
+      font-weight: 800;
+      margin-top: 8px;
+      letter-spacing: -.5px;
+      color: var(--navy)
+    }
+
+    .kpi .sub {
+      font-size: 12px;
+      color: var(--hint);
+      margin-top: 3px
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--sh-sm);
+      border: 1px solid #e9eef4;
+      padding: 16px 18px;
+      margin-bottom: 18px
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px
+    }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .3px
+    }
+
+    select,
+    input[type=search] {
+      font-family: var(--font);
+      font-size: 13.5px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 11px;
+      background: #fff;
+      color: var(--ink);
+      min-width: 160px;
+      height: 40px;
+      box-shadow: inset 0 1px 2px rgba(16, 32, 48, .04)
+    }
+
+    select:focus,
+    input:focus {
+      outline: none;
+      border-color: var(--steel);
+      box-shadow: 0 0 0 3px var(--sky)
+    }
+
+    .filters .grow {
+      flex: 1;
+      min-width: 200px
+    }
+
+    .filters .grow input {
+      width: 100%
+    }
+
+    .pill {
+      margin-left: auto;
+      font-size: 12.5px;
+      color: var(--muted);
+      font-weight: 600;
+      align-self: center
+    }
+
+    /* multi-select checkbox dropdown */
+    .ms {
+      position: relative;
+      min-width: 210px
+    }
+
+    .ms-btn {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 0 34px 0 12px;
+      font-size: 13.5px;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      box-shadow: inset 0 1px 2px rgba(16, 32, 48, .04);
+      font-family: var(--font)
+    }
+
+    .ms-btn:after {
+      content: '▾';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--hint);
+      font-size: 11px
+    }
+
+    .ms-btn:focus,
+    .ms.open .ms-btn {
+      outline: none;
+      border-color: var(--steel);
+      box-shadow: 0 0 0 3px var(--sky)
+    }
+
+    .ms-panel {
+      position: absolute;
+      z-index: 30;
+      top: 46px;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--sh-lg);
+      padding: 8px;
+      max-height: 300px;
+      overflow: auto;
+      display: none
+    }
+
+    .ms.open .ms-panel {
+      display: block
+    }
+
+    .ms-panel .msrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer
+    }
+
+    .ms-panel .msrow:hover {
+      background: var(--sky)
+    }
+
+    .ms-panel .msrow input {
+      width: 16px;
+      height: 16px;
+      min-width: auto;
+      height: 16px;
+      accent-color: var(--steel);
+      box-shadow: none
+    }
+
+    .ms-head {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 9px 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 6px
+    }
+
+    .ms-head button {
+      background: none;
+      border: none;
+      color: var(--steel);
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px
+    }
+
+    .card {
+      background: linear-gradient(180deg, #ffffff, #fcfdff);
+      border-radius: var(--r);
+      box-shadow: var(--sh-sm);
+      border: 1px solid #e9eef4;
+      padding: 18px;
+      transition: box-shadow .15s
+    }
+
+    .card:hover {
+      box-shadow: var(--sh-md)
+    }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy)
+    }
+
+    .card .csub {
+      font-size: 12px;
+      color: var(--hint);
+      margin-bottom: 14px;
+      margin-top: 2px
+    }
+
+    .chartbox {
+      position: relative;
+      width: 100%;
+      height: 300px
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .legend i {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px
+    }
+
+    .tablecard {
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--sh-sm);
+      border: 1px solid #e9eef4;
+      overflow: hidden
+    }
+
+    .tablecard .thead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--line);
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    .tablecard h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy)
+    }
+
+    .scroll {
+      overflow-x: auto;
+      max-height: 560px
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12.5px
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, #16456c, #0e2a43);
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 12px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 11.5px
+    }
+
+    thead th:hover {
+      background: var(--navy2)
+    }
+
+    thead th .ar {
+      opacity: .6;
+      font-size: 10px;
+      margin-left: 3px
+    }
+
+    tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #eef2f6;
+      white-space: nowrap
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fafbfd
+    }
+
+    tbody tr:hover {
+      background: var(--sky)
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px
+    }
+
+    .b-hi {
+      background: #e7f6f0;
+      color: #0f5e45
+    }
+
+    .b-mid {
+      background: #fdeccd;
+      color: #8a5a06
+    }
+
+    .b-lo {
+      background: #fdeceb;
+      color: #8c2b27
+    }
+
+    /* recent uploads */
+    .recent {
+      max-width: 780px;
+      margin: 20px auto 0
+    }
+
+    .recent h4 {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .recent .list {
+      background: #fff;
+      border: 1px solid #e9eef4;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--sh-sm)
+    }
+
+    .recent .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      border-bottom: 1px solid #eef2f6;
+      font-size: 13px;
+      transition: background .12s
+    }
+
+    .recent .row:last-child {
+      border-bottom: none
+    }
+
+    .recent .row:hover {
+      background: #f6f9fd
+    }
+
+    .recent .fi {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #eaf2fc, #d8e7f7);
+      display: grid;
+      place-items: center;
+      flex: none;
+      color: var(--steel);
+      font-weight: 700;
+      font-size: 10.5px;
+      box-shadow: inset 0 1px 0 #fff
+    }
+
+    .recent .meta {
+      flex: 1;
+      min-width: 0
+    }
+
+    .recent a.fn {
+      font-weight: 600;
+      color: var(--steel);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      cursor: pointer;
+      text-decoration: none
+    }
+
+    .recent a.fn:hover {
+      text-decoration: underline
+    }
+
+    .recent .fn.plain {
+      color: var(--ink);
+      cursor: default
+    }
+
+    .recent .mt {
+      font-size: 11.5px;
+      color: var(--hint)
+    }
+
+    .recent .own {
+      font-size: 10px;
+      font-weight: 700;
+      color: #0f5e45;
+      background: #e7f6f0;
+      padding: 2px 7px;
+      border-radius: 20px;
+      flex: none
+    }
+
+    .recent .del {
+      flex: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--red);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: .12s
+    }
+
+    .recent .del:hover {
+      background: #fdeceb;
+      border-color: #f0b3b0
+    }
+
+    .recent .ract {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex: none
+    }
+
+    .rbtn {
+      border: none;
+      border-radius: 9px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform .12s, box-shadow .12s
+    }
+
+    .rbtn:active {
+      transform: translateY(1px)
+    }
+
+    .rbtn.view {
+      background: linear-gradient(180deg, #3d8ad0, #2f6db0);
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(47, 109, 176, .3)
+    }
+
+    .rbtn.view:hover {
+      box-shadow: 0 5px 14px rgba(47, 109, 176, .42)
+    }
+
+    .rbtn.dl {
+      background: #fff;
+      color: var(--navy);
+      border: 1px solid var(--line)
+    }
+
+    .rbtn.dl:hover {
+      border-color: var(--steel);
+      color: var(--steel)
+    }
+
+    .rbtn[disabled] {
+      opacity: .45;
+      cursor: not-allowed;
+      box-shadow: none
+    }
+
+    .recent .empty {
+      padding: 18px 15px;
+      color: var(--hint);
+      font-size: 13px;
+      text-align: center
+    }
+
+    /* ===== AUTH (glassmorphism) ===== */
+    #authView {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      overflow: auto;
+      background: linear-gradient(135deg, #0b2236 0%, #15426a 45%, #2f6db0 120%);
+    }
+
+    #authView:before {
+      content: '';
+      position: absolute;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      top: -160px;
+      right: -120px;
+      background: radial-gradient(circle, rgba(245, 158, 11, .35), transparent 60%);
+      filter: blur(10px)
+    }
+
+    #authView:after {
+      content: '';
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      bottom: -200px;
+      left: -160px;
+      background: radial-gradient(circle, rgba(61, 138, 208, .45), transparent 60%);
+      filter: blur(10px)
+    }
+
+    .auth-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 410px;
+      padding: 36px 32px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .14);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, .28);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .4)
+    }
+
+    .auth-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      justify-content: center;
+      margin-bottom: 8px
+    }
+
+    .auth-brand .logo {
+      width: 40px;
+      height: 40px
+    }
+
+    .auth-brand b {
+      font-size: 19px;
+      color: #fff
+    }
+
+    .auth-card h2 {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 800;
+      margin-top: 16px;
+      color: #fff
+    }
+
+    .auth-card .sub {
+      text-align: center;
+      color: rgba(255, 255, 255, .8);
+      font-size: 13px;
+      margin: 5px 0 22px
+    }
+
+    .auth-field {
+      margin-bottom: 15px
+    }
+
+    .auth-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .85);
+      margin-bottom: 6px
+    }
+
+    .auth-field input {
+      width: 100%;
+      height: 46px;
+      border: 1px solid rgba(255, 255, 255, .3);
+      border-radius: 12px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-family: var(--font);
+      background: rgba(255, 255, 255, .92);
+      color: var(--ink);
+      transition: transform .12s, box-shadow .15s, border .15s;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06)
+    }
+
+    .auth-field input:focus {
+      outline: none;
+      border-color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .18)
+    }
+
+    .auth-btn {
+      width: 100%;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      font-family: var(--font);
+      margin-top: 4px;
+      background: linear-gradient(180deg, #3d8ad0, #2f6db0);
+      box-shadow: 0 10px 22px rgba(20, 60, 100, .45), inset 0 1px 0 rgba(255, 255, 255, .4);
+      transition: transform .12s, box-shadow .12s
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(20, 60, 100, .55)
+    }
+
+    .auth-btn:active {
+      transform: translateY(1px)
+    }
+
+    .auth-btn:disabled {
+      opacity: .65;
+      cursor: not-allowed
+    }
+
+    .auth-switch {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255, 255, 255, .82);
+      margin-top: 18px
+    }
+
+    .auth-switch button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline
+    }
+
+    .auth-msg {
+      font-size: 12.5px;
+      border-radius: 10px;
+      padding: 10px 13px;
+      margin-bottom: 15px;
+      display: none
+    }
+
+    .auth-msg.err {
+      display: block;
+      background: rgba(216, 80, 76, .92);
+      color: #fff
+    }
+
+    .auth-msg.ok {
+      display: block;
+      background: rgba(29, 158, 117, .92);
+      color: #fff
+    }
+
+    /* ===== FOOTER (3D / layered) ===== */
+    footer.site {
+      position: relative;
+      margin-top: 48px;
+      color: #c4d2e2;
+      background:
+        radial-gradient(900px 300px at 85% -40%, rgba(61, 138, 208, .25), transparent 60%),
+        radial-gradient(700px 280px at 0% -20%, rgba(245, 158, 11, .12), transparent 55%),
+        linear-gradient(180deg, #103352 0%, #0c2841 55%, #081d30 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 -10px 30px rgba(8, 24, 40, .25)
+    }
+
+    footer.site:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #2f6db0, #3d8ad0 40%, #f59e0b);
+      opacity: .85
+    }
+
+    .ftr-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr 1.9fr;
+      gap: 34px;
+      padding: 42px 20px 28px
+    }
+
+    .ftr-brand .fbrand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 14px
+    }
+
+    .ftr-logo-wrap {
+      width: 54px;
+      height: 54px;
+      border-radius: 15px;
+      flex: none;
+      background: linear-gradient(160deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04));
+      border: 1px solid rgba(255, 255, 255, .18);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .35)
+    }
+
+    .ftr-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 6px
+    }
+
+    .ftr-logo-wrap .logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 15px;
+      font-size: 18px
+    }
+
+    .ftr-brand .fbrand b {
+      color: #fff;
+      font-size: 17px;
+      display: block;
+      line-height: 1.15
+    }
+
+    .ftr-brand .fbrand span {
+      color: #9fb6cc;
+      font-size: 11px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      font-weight: 600
+    }
+
+    .ftr-addr {
+      max-width: 330px;
+      font-size: 13px;
+      color: #a9b8c8;
+      line-height: 1.7
+    }
+
+    footer.site h5 {
+      color: #fff;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 14px;
+      font-weight: 700
+    }
+
+    .ftr-col a,
+    .ftr-col p {
+      display: block;
+      font-size: 13px;
+      color: #a9b8c8;
+      line-height: 2;
+      text-decoration: none;
+      transition: color .15s
+    }
+
+    .ftr-col a:hover {
+      color: #fff
+    }
+
+    .socials {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px
+    }
+
+    .soc {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: #dbe7f4;
+      background: linear-gradient(160deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .03));
+      border: 1px solid rgba(255, 255, 255, .16);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .30);
+      transition: transform .14s, box-shadow .14s, background .14s
+    }
+
+    .soc:hover {
+      transform: translateY(-4px);
+      background: linear-gradient(160deg, #2f6db0, #0a66c2);
+      color: #fff;
+      box-shadow: 0 14px 26px rgba(10, 102, 194, .45)
+    }
+
+    .soc svg {
+      width: 19px;
+      height: 19px;
+      fill: currentColor
+    }
+
+    .ftr-mail {
+      margin-top: 10px
+    }
+
+    .ftr-contact-cards {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 13px;
+      margin-top: 4px
+    }
+
+    .ftr-contact-card {
+      flex: 1 1 210px;
+      min-width: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .04));
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 13px;
+      padding: 15px 16px;
+      transition: transform .15s, background .15s, border-color .15s, box-shadow .15s;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .18)
+    }
+
+    .ftr-contact-card:hover {
+      transform: translateY(-3px);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .06));
+      border-color: rgba(255, 255, 255, .24);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, .28)
+    }
+
+    .ftr-contact-name {
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 9px
+    }
+
+    .ftr-av {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3d8ad0, #2f6db0);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      letter-spacing: .3px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .35)
+    }
+
+    .ftr-contact-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #a9b8c8;
+      line-height: 1.9;
+      text-decoration: none;
+      transition: color .15s;
+      overflow-wrap: anywhere;
+      word-break: break-word
+    }
+
+    .ftr-contact-row:hover {
+      color: #e8f1fb
+    }
+
+    .ftr-ci {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+      opacity: .65;
+      flex: none
+    }
+
+    .ftr-bottom {
+      position: relative;
+      border-top: 1px solid rgba(255, 255, 255, .09);
+      text-align: center;
+      font-size: 12px;
+      padding: 15px 20px;
+      color: #8090a2;
+      background: rgba(0, 0, 0, .18)
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media(max-width:1080px) {
+      footer.site .ftr-grid {
+        grid-template-columns: 1fr 1.6fr
+      }
+    }
+
+    @media(max-width:900px) {
+      .grid2 {
+        grid-template-columns: 1fr
+      }
+
+      footer.site .ftr-grid {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    @media(max-width:860px) {
+      .topbar .actions .lbl {
+        display: none
+      }
+    }
+
+    @media(max-width:680px) {
+      .wrap {
+        padding: 0 13px
+      }
+
+      .topbar .wrap {
+        height: auto;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 13px
+      }
+
+      .topbar .actions {
+        flex-wrap: wrap;
+        gap: 7px
+      }
+
+      .btn {
+        padding: 8px 11px;
+        font-size: 12.5px
+      }
+
+      .userchip .nm,
+      .userchip .rl {
+        display: none
+      }
+
+      .userchip {
+        padding: 4px;
+        margin-right: 0
+      }
+
+      main {
+        padding: 20px 0 30px
+      }
+
+      .intro h1 {
+        font-size: 21px
+      }
+
+      .intro p {
+        font-size: 13px
+      }
+
+      .kpis {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 11px
+      }
+
+      .kpi {
+        padding: 13px 14px
+      }
+
+      .kpi .val {
+        font-size: 20px
+      }
+
+      .modhead {
+        padding: 13px 14px;
+        gap: 11px
+      }
+
+      .modhead .mh-tag {
+        margin-left: 0
+      }
+
+      .modhead {
+        flex-wrap: wrap
+      }
+
+      .card {
+        padding: 14px
+      }
+
+      .card h3 {
+        font-size: 14px
+      }
+
+      .chartbox {
+        height: 250px !important
+      }
+
+      .panel {
+        padding: 13px 14px
+      }
+
+      .filters {
+        gap: 10px
+      }
+
+      .field,
+      .ms {
+        width: 100%
+      }
+
+      select,
+      .ms-btn,
+      input[type=search] {
+        min-width: 0;
+        width: 100%
+      }
+
+      .pill {
+        margin-left: 0;
+        width: 100%;
+        text-align: left
+      }
+
+      .cards {
+        grid-template-columns: 1fr
+      }
+
+      .drop {
+        padding: 34px 16px
+      }
+
+      .auth-card {
+        padding: 26px 20px
+      }
+
+      .tablecard .thead {
+        padding: 13px 14px
+      }
+
+      .recent .row {
+        flex-wrap: wrap
+      }
+
+      .recent .ract {
+        width: 100%;
+        justify-content: flex-end
+      }
+
+      footer.site .ftr-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 26px
+      }
+
+      footer.site .ftr-brand {
+        align-items: center
+      }
+
+      .ftr-brand .fbrand,
+      .socials {
+        justify-content: center
+      }
+
+      .ftr-addr {
+        margin: 0 auto
+      }
+
+      .ftr-contact-cards {
+        flex-direction: column;
+        align-items: center
+      }
+
+      .ftr-contact-card {
+        max-width: 340px;
+        width: 100%;
+        flex: none;
+        text-align: left
+      }
+
+      .ftr-contact-name {
+        justify-content: center
+      }
+
+      .ftr-contact-row {
+        justify-content: center
+      }
+
+      /* ---- table becomes stacked cards: no horizontal scroll ---- */
+      .scroll {
+        overflow-x: visible;
+        max-height: none
+      }
+
+      #tbl thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0)
+      }
+
+      #tbl,
+      #tbl tbody {
+        display: block;
+        width: 100%
+      }
+
+      #tbl tr {
+        display: block;
+        margin: 12px 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--sh-sm);
+        background: #fff !important
+      }
+
+      #tbl td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        text-align: right;
+        padding: 9px 14px;
+        border-bottom: 1px solid #eef2f6;
+        white-space: normal
+      }
+
+      #tbl td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--muted);
+        text-align: left;
+        flex: none;
+        font-size: 12px
+      }
+
+      #tbl td:last-child {
+        border-bottom: none
+      }
+
+      #tbl td.num {
+        font-variant-numeric: tabular-nums
+      }
+    }
+
+    @media(max-width:420px) {
+      .intro h1 {
+        font-size: 19px
+      }
+
+      .kpi .val {
+        font-size: 18px
+      }
+
+      .btn .lbl {
+        display: none
+      }
+
+      .kpis {
+        grid-template-columns: 1fr 1fr;
+        gap: 9px
+      }
+
+      .auth-card {
+        padding: 22px 16px
+      }
+
+      .chartbox {
+        height: 230px !important
+      }
+    }
+
+    @media(max-width:340px) {
+      .kpis {
+        grid-template-columns: 1fr
+      }
+    }
+
+    @media print {
+
+      header.topbar,
+      .drop,
+      .filters,
+      .thead .btn,
+      footer.site {
+        display: none !important
+      }
+
+      body {
+        background: #fff
+      }
+
+      .card,
+      .kpi,
+      .tablecard,
+      .panel {
+        box-shadow: none
+      }
+    }
+  </style>
 </head>
+
 <body>
-<!-- ===== LOGIN / REGISTER ===== -->
-<section id="authView">
-  <div class="auth-card">
-    <div class="auth-brand"><b>VIESL</b></div>
-    <h2 id="authTitle">Manager Login</h2>
-    <p class="sub" id="authSub">Sign in to access the Report Analyzer</p>
-    <div class="auth-msg" id="authMsg"></div>
-    <div id="loginForm">
-      <div class="auth-field"><label>User ID</label><input id="liUser" autocomplete="username" placeholder="e.g. 21686"></div>
-      <div class="auth-field"><label>Password</label><input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
-      <button class="auth-btn" id="liBtn">Login</button>
-      <div class="auth-switch">No account yet? <button id="toRegister">Create one</button></div>
-    </div>
-    <div id="registerForm" style="display:none">
-      <div class="auth-field"><label>Full Name</label><input id="rgName" placeholder="e.g. Harshal Khadatare"></div>
-      <div class="auth-field"><label>User ID</label><input id="rgUser" autocomplete="username" placeholder="e.g. 21686"></div>
-      <div class="auth-field"><label>Password</label><input id="rgPass" type="password" autocomplete="new-password" placeholder="min 4 characters"></div>
-      <button class="auth-btn" id="rgBtn">Create account</button>
-      <div class="auth-switch">Already registered? <button id="toLogin">Back to login</button></div>
-    </div>
-  </div>
-</section>
-
-<div id="appRoot" style="display:none">
-<header class="topbar"><div class="wrap">
-  <div class="brand"><div><b>Vision Infra Equipment Solutions Ltd.</b><span id="brandSub">P&M Report Analyzer</span></div></div>
-  <div class="actions">
-    
-    <button class="btn btn-ghost" id="btnReset" disabled><span class="lbl">New</span> ↺</button>
-    <button class="btn btn-ghost" id="btnCsv" disabled>⬇ <span class="lbl">CSV</span></button>
-    <button class="btn btn-ghost" id="btnPdf" disabled>⬇ <span class="lbl">PDF</span></button>
-    <button class="btn btn-green" id="btnXlsx" disabled>⬇ Excel report</button>
-    <button class="btn btn-ghost" id="btnLogout">Logout</button>
-    <div class="userchip" id="userChip"></div>
-  </div>
-</div></header>
-
-<div class="loader" id="loader"><div><div class="spinner"></div><p id="loadtext">Processing…</p></div></div>
-
-<main class="wrap">
-  <div id="msg"></div>
-  <section id="selectView">
-    <div class="intro"><h1>Choose a report to analyze</h1><p>Select the report type, then upload its Excel file. Each type runs its own processing module.</p></div>
-    <div class="cards" id="reportCards"></div>
-  </section>
-
-  <section id="uploadView" style="display:none">
-    <div class="chosen">Report type: <span class="chip" id="chosenName">—</span> <button class="link" id="changeType">Back</button></div>
-    <div class="drop" id="drop">
-      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
-      <h2>Drag &amp; drop your Excel file</h2><p>or click to browse — .xlsx, .xls or .csv</p>
-      <button class="btn btn-line" type="button">Choose file</button>
-      <small id="uploadHint"></small>
-      <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden />
-    </div>
-    <div class="recent" id="recentWrap" style="display:none">
-      <h4>🕑 Recent uploads <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--hint)">— shared with all managers · click a file to open</span></h4>
-      <div class="list" id="recentList"></div>
-    </div>
-  </section>
-
-  <section id="dashView" style="display:none">
-    <div class="modhead" id="modHead"></div>
-    <div class="kpis" id="kpis"></div>
-    <div class="panel"><div class="filters" id="filters"></div></div>
-    <div id="charts"></div>
-    <div class="tablecard" id="tableCard">
-      <div class="thead"><h3 id="tableTitle">Processed report</h3>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-line" id="btnCsv2">⬇ CSV</button>
-          <button class="btn btn-green" id="btnXlsx2">⬇ Excel report</button>
-        </div></div>
-      <div class="scroll"><table id="tbl"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </section>
-</main>
-
-<footer class="site">
-  <div class="wrap ftr-grid">
-    <div class="ftr-brand">
-      <div class="fbrand">
-        <div class="ftr-logo-wrap">
-          <img src="logo.png" alt="Vision Infra logo" class="ftr-logo-img"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-          <div class="logo" style="display:none">VIESL</div>
-        </div>
-        <div><b id="ftrName">Vision Infra Equipment Solutions</b><span>P&M Report Analyzer</span></div>
+  <!-- ===== LOGIN / REGISTER ===== -->
+  <section id="authView">
+    <div class="auth-card">
+      <div class="auth-brand"><b>VIESL</b></div>
+      <h2 id="authTitle">Manager Login</h2>
+      <p class="sub" id="authSub">Sign in to access the Report Analyzer</p>
+      <div class="auth-msg" id="authMsg"></div>
+      <div id="loginForm">
+        <div class="auth-field"><label>User ID</label><input id="liUser" autocomplete="username"
+            placeholder="e.g. 21686"></div>
+        <div class="auth-field"><label>Password</label><input id="liPass" type="password"
+            autocomplete="current-password" placeholder="••••••••"></div>
+        <button class="auth-btn" id="liBtn">Login</button>
+        <div class="auth-switch">No account yet? <button id="toRegister">Create one</button></div>
       </div>
-      <p class="ftr-addr" id="ftrAddr"></p>
-      <p class="ftr-mail"><a id="ftrMail" href="#"></a></p>
+      <div id="registerForm" style="display:none">
+        <div class="auth-field"><label>Full Name</label><input id="rgName" placeholder="e.g. Harshal Khadatare"></div>
+        <div class="auth-field"><label>User ID</label><input id="rgUser" autocomplete="username"
+            placeholder="e.g. 21686"></div>
+        <div class="auth-field"><label>Password</label><input id="rgPass" type="password" autocomplete="new-password"
+            placeholder="min 4 characters"></div>
+        <button class="auth-btn" id="rgBtn">Create account</button>
+        <div class="auth-switch">Already registered? <button id="toLogin">Back to login</button></div>
+      </div>
     </div>
-    <div class="ftr-col">
-      <h5>Report Analyzer</h5>
-      <p>Rental &amp; Stock report processing</p>
-      <p>Secure, manager-only access</p>
-      <p>Processing runs in your browser</p>
+  </section>
+
+  <div id="appRoot" style="display:none">
+    <header class="topbar">
+      <div class="wrap">
+        <div class="brand">
+          <div><b>Vision Infra Equipment Solutions Ltd.</b><span id="brandSub">P&M Report Analyzer</span></div>
+        </div>
+        <div class="actions">
+
+          <button class="btn btn-ghost" id="btnReset" disabled><span class="lbl">New</span> ↺</button>
+          <button class="btn btn-ghost" id="btnCsv" disabled>⬇ <span class="lbl">CSV</span></button>
+          <button class="btn btn-ghost" id="btnPdf" disabled>⬇ <span class="lbl">PDF</span></button>
+          <button class="btn btn-green" id="btnXlsx" disabled>⬇ Excel report</button>
+          <button class="btn btn-ghost" id="btnLogout">Logout</button>
+          <div class="userchip" id="userChip"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="loader" id="loader">
+      <div>
+        <div class="spinner"></div>
+        <p id="loadtext">Processing…</p>
+      </div>
     </div>
-    <div class="ftr-col">
-      <h5>Contact Us</h5>
-      <div class="ftr-contact-cards">
-        <div class="ftr-contact-card">
-          <div class="ftr-contact-name">
-            <span class="ftr-av">SP</span>Mr. Sandeep Patil
+
+    <main class="wrap">
+      <div id="msg"></div>
+      <section id="selectView">
+        <div class="intro">
+          <h1>Choose a report to analyze</h1>
+          <p>Select the report type, then upload its Excel file. Each type runs its own processing module.</p>
+        </div>
+        <div class="cards" id="reportCards"></div>
+      </section>
+
+      <section id="uploadView" style="display:none">
+        <div class="chosen">Report type: <span class="chip" id="chosenName">—</span> <button class="link"
+            id="changeType">Back</button></div>
+        <div class="drop" id="drop">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M12 16V4M12 4l-4 4M12 4l4 4" />
+              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+            </svg></div>
+          <h2>Drag &amp; drop your Excel file</h2>
+          <p>or click to browse — .xlsx, .xls or .csv</p>
+          <button class="btn btn-line" type="button">Choose file</button>
+          <small id="uploadHint"></small>
+          <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden />
+        </div>
+        <div class="recent" id="recentWrap" style="display:none">
+          <h4>🕑 Recent uploads <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--hint)">—
+              shared with all managers · click a file to open</span></h4>
+          <div class="list" id="recentList"></div>
+        </div>
+      </section>
+
+      <section id="dashView" style="display:none">
+        <div class="modhead" id="modHead"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="panel">
+          <div class="filters" id="filters"></div>
+        </div>
+        <div id="charts"></div>
+        <div class="tablecard" id="tableCard">
+          <div class="thead">
+            <h3 id="tableTitle">Processed report</h3>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-line" id="btnCsv2">⬇ CSV</button>
+              <button class="btn btn-green" id="btnXlsx2">⬇ Excel report</button>
+            </div>
           </div>
-          <a class="ftr-contact-row" href="mailto:pnm_audit@visioninfraindia.com">
-            <svg class="ftr-ci" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-            pnm_audit@visioninfraindia.com
-          </a>
-          <a class="ftr-contact-row" href="tel:+918956667459">
-            <svg class="ftr-ci" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
-            +91 89566 67459
-          </a>
-        </div>
-        <div class="ftr-contact-card">
-          <div class="ftr-contact-name">
-            <span class="ftr-av">HK</span>Mr. Harshal Khadatare
+          <div class="scroll">
+            <table id="tbl">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
           </div>
-          <a class="ftr-contact-row" href="mailto:itsupport@visioninfraindia.com">
-            <svg class="ftr-ci" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-            itsupport@visioninfraindia.com
-          </a>
-          <a class="ftr-contact-row" href="tel:+919075768742">
-            <svg class="ftr-ci" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
-            +91 90757 68742
-          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site">
+      <div class="wrap ftr-grid">
+        <div class="ftr-brand">
+          <div class="fbrand">
+            <div class="ftr-logo-wrap">
+              <img src="logo.png" alt="Vision Infra logo" class="ftr-logo-img"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+              <div class="logo" style="display:none">VIESL</div>
+            </div>
+            <div><b id="ftrName">Vision Infra Equipment Solutions</b><span>P&M Report Analyzer</span></div>
+          </div>
+          <p class="ftr-addr" id="ftrAddr"></p>
+          <p class="ftr-mail"><a id="ftrMail" href="#"></a></p>
+        </div>
+        <div class="ftr-col">
+          <h5>Report Analyzer</h5>
+          <p>Rental &amp; Stock report processing</p>
+          <p>Secure, manager-only access</p>
+          <p>Processing runs in your browser</p>
+        </div>
+        <div class="ftr-col">
+          <h5>Contact Us</h5>
+          <div class="ftr-contact-cards">
+            <div class="ftr-contact-card">
+              <div class="ftr-contact-name">
+                <span class="ftr-av">SP</span>Mr. Sandeep Patil
+              </div>
+              <a class="ftr-contact-row" href="mailto:pnm_audit@visioninfraindia.com">
+                <svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                </svg>
+                pnm_audit@visioninfraindia.com
+              </a>
+              <a class="ftr-contact-row" href="tel:+918956667459">
+                <svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
+                </svg>
+                +91 89566 67459
+              </a>
+            </div>
+            <div class="ftr-contact-card">
+              <div class="ftr-contact-name">
+                <span class="ftr-av">HK</span>Mr. Harshal Khadatare
+              </div>
+              <a class="ftr-contact-row" href="mailto:itsupport@visioninfraindia.com">
+                <svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                </svg>
+                itsupport@visioninfraindia.com
+              </a>
+              <a class="ftr-contact-row" href="tel:+919075768742">
+                <svg class="ftr-ci" viewBox="0 0 24 24">
+                  <path
+                    d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
+                </svg>
+                +91 90757 68742
+              </a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="ftr-col">
-      <h5>Connect</h5>
-      <div class="socials">
-        <a class="soc" id="ftrLi" target="_blank" rel="noopener" title="LinkedIn">
-          <svg viewBox="0 0 24 24"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.02 8.5H4.9V24H.02V8.5zM8.34 8.5h4.68v2.12h.07c.65-1.23 2.24-2.53 4.6-2.53 4.92 0 5.83 3.24 5.83 7.45V24h-4.86v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.54 1.72-2.54 3.49V24H8.34V8.5z"/></svg>
-        </a>
-        <a class="soc" id="ftrMailIcon" title="Email">
-          <svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        </a>
-        <a class="soc" id="ftrWeb" href="#" title="Website">
-          <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.93 8zM12 4c.83 1.2 1.48 2.53 1.91 4h-3.82c.43-1.47 1.08-2.8 1.91-4zM4.26 14a7.96 7.96 0 010-4h3.38a16.6 16.6 0 000 4H4.26zm.81 2h2.95c.32 1.25.78 2.45 1.38 3.56A8.03 8.03 0 015.07 16zm2.95-8H5.07a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.02 8zM12 20c-.83-1.2-1.48-2.53-1.91-4h3.82A13.4 13.4 0 0112 20zm2.34-6H9.66a14.7 14.7 0 010-4h4.68a14.7 14.7 0 010 4zm.28 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38a7.96 7.96 0 010 4h-3.38z"/></svg>
-        </a>
-      </div>
-    </div>
-  </div>
-  <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2">Vision Infra Equipment Solutions Ltd.</span> · All rights reserved. Designed and Developed by Harshal Khadatare</div>
-</footer>
-</div><!-- /appRoot -->
+      <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2">Vision Infra Equipment Solutions
+          Ltd.</span> · All rights reserved. Designed and Developed by Harshal Khadatare</div>
+    </footer>
+  </div><!-- /appRoot -->
 
-<script>
-/* ===================== UTILITIES ===================== */
-const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const numv=v=>{const n=parseFloat(String(v).replace(/[, ]/g,''));return isFinite(n)?n:0;};
-const fmtN=(n,d=0)=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:d,minimumFractionDigits:d});
-const fmtPct=n=>fmtN(n*100,1)+'%';
-const sum=(a,k)=>a.reduce((s,x)=>s+(+x[k]||0),0);
-const uniq=(a,k)=>[...new Set(a.map(x=>x[k]).filter(v=>v!==''&&v!=null))].sort();
-function toDate(v){ if(v instanceof Date)return v;
-  if(typeof v==='number'){const o=XLSX.SSF.parse_date_code(v); if(o) return new Date(o.y,o.m-1,o.d);}
-  const d=new Date(v); return isNaN(d)?null:d; }
-const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const ym=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const monthLabel=d=>MON[d.getMonth()]+'-'+d.getFullYear();
-function sheetToAoa(wb,preferred){let name=wb.SheetNames[0];
-  if(preferred){const hit=wb.SheetNames.find(n=>norm(n)===norm(preferred)); if(hit)name=hit;}
-  return XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:'',raw:true});}
-function findHeader(aoa,tokens){for(let i=0;i<Math.min(aoa.length,15);i++){const set=new Set((aoa[i]||[]).map(norm));
-  if(tokens.some(t=>[...set].some(s=>s.includes(t))))return i;}return 0;}
-function mapCols(headers,defs){const map={},used=new Set();
-  headers.forEach((h,i)=>{const n=norm(h);for(const[f,al]of Object.entries(defs)){if(map[f]!==undefined)continue;if(al.some(a=>n===a)){map[f]=i;used.add(i);}}});
-  headers.forEach((h,i)=>{if(used.has(i))return;const n=norm(h);for(const[f,al]of Object.entries(defs)){if(map[f]!==undefined)continue;if(al.some(a=>n.includes(a))){map[f]=i;used.add(i);}}});
-  return map;}
-
-/* ===================== SUPABASE + AUTH ===================== */
-const SB=(window.supabase && /^https:\/\//.test(SUPABASE_URL))?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
-const SESSION_KEY='vi_user'; let USER=null;
-function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(e){return null;}}
-function setSession(u){USER=u;if(u)localStorage.setItem(SESSION_KEY,JSON.stringify(u));else localStorage.removeItem(SESSION_KEY);}
-function authMsg(t,cls){const e=document.getElementById('authMsg');e.textContent=t||'';e.className='auth-msg'+(t?(' '+cls):'');}
-function showAuth(){document.getElementById('authView').style.display='grid';document.getElementById('appRoot').style.display='none';}
-function showApp(){document.getElementById('authView').style.display='none';document.getElementById('appRoot').style.display='block';
-  const ini=(USER.name||USER.user_id||'?').trim().slice(0,1).toUpperCase();
-  document.getElementById('userChip').innerHTML=`<div class="av">${ini}</div><div><div class="nm">${USER.name||USER.user_id}</div><div class="rl">Manager</div></div>`;}
-function swapAuth(toReg){document.getElementById('loginForm').style.display=toReg?'none':'block';
-  document.getElementById('registerForm').style.display=toReg?'block':'none';
-  document.getElementById('authTitle').textContent=toReg?'Create Account':'Manager Login';
-  document.getElementById('authSub').textContent=toReg?'Register a new manager account':'Sign in to access the Report Analyzer';authMsg('');}
-async function doRegister(){if(!SB){authMsg('Supabase is not configured.','err');return;}
-  const name=document.getElementById('rgName').value.trim(),uid=document.getElementById('rgUser').value.trim(),pass=document.getElementById('rgPass').value;
-  if(!name||!uid||pass.length<4){authMsg('Enter name, user ID and a password (min 4 chars).','err');return;}
-  const b=document.getElementById('rgBtn');b.disabled=true;b.textContent='Creating…';
-  try{const{data,error}=await SB.rpc('register_user',{p_name:name,p_user_id:uid,p_password:pass});if(error)throw error;
-    if(!data.ok)authMsg(data.error,'err');else{authMsg('Account created — please log in.','ok');swapAuth(false);document.getElementById('liUser').value=data.user_id;document.getElementById('liPass').focus();}
-  }catch(e){authMsg('Could not register: '+(e.message||e),'err');}b.disabled=false;b.textContent='Create account';}
-async function doLogin(){if(!SB){authMsg('Supabase is not configured.','err');return;}
-  const uid=document.getElementById('liUser').value.trim(),pass=document.getElementById('liPass').value;
-  if(!uid||!pass){authMsg('Enter your user ID and password.','err');return;}
-  const b=document.getElementById('liBtn');b.disabled=true;b.textContent='Signing in…';
-  try{const{data,error}=await SB.rpc('login_user',{p_user_id:uid,p_password:pass});if(error)throw error;
-    if(!data.ok)authMsg(data.error,'err');else{setSession({name:data.name,user_id:data.user_id,token:data.token});showApp();}
-  }catch(e){authMsg('Could not log in: '+(e.message||e),'err');}b.disabled=false;b.textContent='Login';}
-function doLogout(){setSession(null);reset();document.getElementById('selectView').style.display='block';
-  document.getElementById('uploadView').style.display='none';document.getElementById('dashView').style.display='none';
-  CURRENT=null;PROC=null;showAuth();document.getElementById('liPass').value='';}
-async function initAuth(){USER=getSession();
-  if(USER&&USER.token&&SB){try{const{data}=await SB.rpc('whoami',{p_token:USER.token});
-    if(data&&data.ok){USER.name=data.name;USER.user_id=data.user_id;setSession(USER);showApp();return;}}catch(e){}}
-  setSession(null);showAuth();}
-
-/* ---- file storage + history ---- */
-function publicUrl(path){ return `${SUPABASE_URL}/storage/v1/object/public/report-files/${path}`; }
-async function uploadAndRecord(reportType,file,rowCount){
-  if(!SB||!USER)return; let storagePath=null;
-  try{
-    if(file.size<=45*1024*1024){
-      const safe=file.name.replace(/[^\w.\-]+/g,'_');
-      const path=`${reportType}/${Date.now()}_${safe}`;
-      const{error}=await SB.storage.from('report-files').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});
-      if(!error)storagePath=path;
+  <script>
+    /* ===================== UTILITIES ===================== */
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const numv = v => { const n = parseFloat(String(v).replace(/[, ]/g, '')); return isFinite(n) ? n : 0; };
+    const fmtN = (n, d = 0) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d });
+    const fmtPct = n => fmtN(n * 100, 1) + '%';
+    const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
+    const uniq = (a, k) => [...new Set(a.map(x => x[k]).filter(v => v !== '' && v != null))].sort();
+    function toDate(v) {
+      if (v instanceof Date) return v;
+      if (typeof v === 'number') { const o = XLSX.SSF.parse_date_code(v); if (o) return new Date(o.y, o.m - 1, o.d); }
+      const d = new Date(v); return isNaN(d) ? null : d;
     }
-    await SB.rpc('add_upload',{p_token:USER.token,p_report_type:reportType,p_file_name:file.name,
-      p_file_size:file.size,p_row_count:rowCount,p_storage_path:storagePath});
-  }catch(e){}
-  loadRecent(reportType);
-}
-let RECENT={};
-async function loadRecent(reportType){
-  const wrap=document.getElementById('recentWrap'),list=document.getElementById('recentList');
-  if(!SB){wrap.style.display='none';return;} wrap.style.display='block';list.innerHTML='<div class="empty">Loading…</div>';
-  try{const{data,error}=await SB.from('uploads').select('*').eq('report_type',reportType).order('uploaded_at',{ascending:false}).limit(10);
-    if(error)throw error;
-    if(!data.length){list.innerHTML='<div class="empty">No uploads yet for this report.</div>';return;}
-    RECENT={}; data.forEach(u=>RECENT[u.id]=u);
-    list.innerHTML=data.map(u=>{
-      const ext=(String(u.file_name).split('.').pop()||'').slice(0,4).toUpperCase();
-      const when=new Date(u.uploaded_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-      const sz=u.file_size?(u.file_size>1048576?(u.file_size/1048576).toFixed(1)+' MB':Math.round(u.file_size/1024)+' KB'):'';
-      const isOwner=USER&&u.uploaded_by_id&&u.uploaded_by_id===USER.user_id;
-      const stored=!!u.storage_path;
-      const dis=stored?'':'disabled title="File not stored (too large) — metadata only"';
-      const view=`<button class="rbtn view" ${dis} onclick="viewUpload('${u.id}')">▣ View</button>`;
-      const dl=`<button class="rbtn dl" ${dis} onclick="downloadUpload('${u.id}')">⬇ Download</button>`;
-      const del=isOwner?`<button class="del" title="Delete (you uploaded this)" onclick="deleteUpload('${u.id}','${reportType}')">🗑</button>`:'';
-      return `<div class="row"><div class="fi">${ext}</div>
+    const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const ym = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthLabel = d => MON[d.getMonth()] + '-' + d.getFullYear();
+    function sheetToAoa(wb, preferred) {
+      let name = wb.SheetNames[0];
+      if (preferred) { const hit = wb.SheetNames.find(n => norm(n) === norm(preferred)); if (hit) name = hit; }
+      return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: true });
+    }
+    function findHeader(aoa, tokens) {
+      for (let i = 0; i < Math.min(aoa.length, 15); i++) {
+        const set = new Set((aoa[i] || []).map(norm));
+        if (tokens.some(t => [...set].some(s => s.includes(t)))) return i;
+      } return 0;
+    }
+    function mapCols(headers, defs) {
+      const map = {}, used = new Set();
+      headers.forEach((h, i) => { const n = norm(h); for (const [f, al] of Object.entries(defs)) { if (map[f] !== undefined) continue; if (al.some(a => n === a)) { map[f] = i; used.add(i); } } });
+      headers.forEach((h, i) => { if (used.has(i)) return; const n = norm(h); for (const [f, al] of Object.entries(defs)) { if (map[f] !== undefined) continue; if (al.some(a => n.includes(a))) { map[f] = i; used.add(i); } } });
+      return map;
+    }
+
+    /* ===================== SUPABASE + AUTH ===================== */
+    const SB = (window.supabase && /^https:\/\//.test(SUPABASE_URL)) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+    const SESSION_KEY = 'vi_user'; let USER = null;
+    function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; } }
+    function setSession(u) { USER = u; if (u) localStorage.setItem(SESSION_KEY, JSON.stringify(u)); else localStorage.removeItem(SESSION_KEY); }
+    function authMsg(t, cls) { const e = document.getElementById('authMsg'); e.textContent = t || ''; e.className = 'auth-msg' + (t ? (' ' + cls) : ''); }
+    function showAuth() { document.getElementById('authView').style.display = 'grid'; document.getElementById('appRoot').style.display = 'none'; }
+    function showApp() {
+      document.getElementById('authView').style.display = 'none'; document.getElementById('appRoot').style.display = 'block';
+      const ini = (USER.name || USER.user_id || '?').trim().slice(0, 1).toUpperCase();
+      document.getElementById('userChip').innerHTML = `<div class="av">${ini}</div><div><div class="nm">${USER.name || USER.user_id}</div><div class="rl">Manager</div></div>`;
+    }
+    function swapAuth(toReg) {
+      document.getElementById('loginForm').style.display = toReg ? 'none' : 'block';
+      document.getElementById('registerForm').style.display = toReg ? 'block' : 'none';
+      document.getElementById('authTitle').textContent = toReg ? 'Create Account' : 'Manager Login';
+      document.getElementById('authSub').textContent = toReg ? 'Register a new manager account' : 'Sign in to access the Report Analyzer'; authMsg('');
+    }
+    async function doRegister() {
+      if (!SB) { authMsg('Supabase is not configured.', 'err'); return; }
+      const name = document.getElementById('rgName').value.trim(), uid = document.getElementById('rgUser').value.trim(), pass = document.getElementById('rgPass').value;
+      if (!name || !uid || pass.length < 4) { authMsg('Enter name, user ID and a password (min 4 chars).', 'err'); return; }
+      const b = document.getElementById('rgBtn'); b.disabled = true; b.textContent = 'Creating…';
+      try {
+        const { data, error } = await SB.rpc('register_user', { p_name: name, p_user_id: uid, p_password: pass }); if (error) throw error;
+        if (!data.ok) authMsg(data.error, 'err'); else { authMsg('Account created — please log in.', 'ok'); swapAuth(false); document.getElementById('liUser').value = data.user_id; document.getElementById('liPass').focus(); }
+      } catch (e) { authMsg('Could not register: ' + (e.message || e), 'err'); } b.disabled = false; b.textContent = 'Create account';
+    }
+    async function doLogin() {
+      if (!SB) { authMsg('Supabase is not configured.', 'err'); return; }
+      const uid = document.getElementById('liUser').value.trim(), pass = document.getElementById('liPass').value;
+      if (!uid || !pass) { authMsg('Enter your user ID and password.', 'err'); return; }
+      const b = document.getElementById('liBtn'); b.disabled = true; b.textContent = 'Signing in…';
+      try {
+        const { data, error } = await SB.rpc('login_user', { p_user_id: uid, p_password: pass }); if (error) throw error;
+        if (!data.ok) authMsg(data.error, 'err'); else { setSession({ name: data.name, user_id: data.user_id, token: data.token }); showApp(); }
+      } catch (e) { authMsg('Could not log in: ' + (e.message || e), 'err'); } b.disabled = false; b.textContent = 'Login';
+    }
+    function doLogout() {
+      setSession(null); reset(); document.getElementById('selectView').style.display = 'block';
+      document.getElementById('uploadView').style.display = 'none'; document.getElementById('dashView').style.display = 'none';
+      CURRENT = null; PROC = null; showAuth(); document.getElementById('liPass').value = '';
+    }
+    async function initAuth() {
+      USER = getSession();
+      if (USER && USER.token && SB) {
+        try {
+          const { data } = await SB.rpc('whoami', { p_token: USER.token });
+          if (data && data.ok) { USER.name = data.name; USER.user_id = data.user_id; setSession(USER); showApp(); return; }
+        } catch (e) { }
+      }
+      setSession(null); showAuth();
+    }
+
+    /* ---- file storage + history ---- */
+    function publicUrl(path) { return `${SUPABASE_URL}/storage/v1/object/public/report-files/${path}`; }
+    async function uploadAndRecord(reportType, file, rowCount) {
+      if (!SB || !USER) return; let storagePath = null;
+      try {
+        if (file.size <= 45 * 1024 * 1024) {
+          const safe = file.name.replace(/[^\w.\-]+/g, '_');
+          const path = `${reportType}/${Date.now()}_${safe}`;
+          const { error } = await SB.storage.from('report-files').upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
+          if (!error) storagePath = path;
+        }
+        await SB.rpc('add_upload', {
+          p_token: USER.token, p_report_type: reportType, p_file_name: file.name,
+          p_file_size: file.size, p_row_count: rowCount, p_storage_path: storagePath
+        });
+      } catch (e) { }
+      loadRecent(reportType);
+    }
+    let RECENT = {};
+    async function loadRecent(reportType) {
+      const wrap = document.getElementById('recentWrap'), list = document.getElementById('recentList');
+      if (!SB) { wrap.style.display = 'none'; return; } wrap.style.display = 'block'; list.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const { data, error } = await SB.from('uploads').select('*').eq('report_type', reportType).order('uploaded_at', { ascending: false }).limit(10);
+        if (error) throw error;
+        if (!data.length) { list.innerHTML = '<div class="empty">No uploads yet for this report.</div>'; return; }
+        RECENT = {}; data.forEach(u => RECENT[u.id] = u);
+        list.innerHTML = data.map(u => {
+          const ext = (String(u.file_name).split('.').pop() || '').slice(0, 4).toUpperCase();
+          const when = new Date(u.uploaded_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          const sz = u.file_size ? (u.file_size > 1048576 ? (u.file_size / 1048576).toFixed(1) + ' MB' : Math.round(u.file_size / 1024) + ' KB') : '';
+          const isOwner = USER && u.uploaded_by_id && u.uploaded_by_id === USER.user_id;
+          const stored = !!u.storage_path;
+          const dis = stored ? '' : 'disabled title="File not stored (too large) — metadata only"';
+          const view = `<button class="rbtn view" ${dis} onclick="viewUpload('${u.id}')">▣ View</button>`;
+          const dl = `<button class="rbtn dl" ${dis} onclick="downloadUpload('${u.id}')">⬇ Download</button>`;
+          const del = isOwner ? `<button class="del" title="Delete (you uploaded this)" onclick="deleteUpload('${u.id}','${reportType}')">🗑</button>` : '';
+          return `<div class="row"><div class="fi">${ext}</div>
         <div class="meta"><div class="fn plain">${u.file_name}</div>
-          <div class="mt">${u.uploaded_by||'—'} · ${when}${u.row_count?(' · '+fmtN(u.row_count)+' rows'):''}${sz?(' · '+sz):''}${isOwner?' · <b style="color:#0f5e45">you</b>':''}</div></div>
+          <div class="mt">${u.uploaded_by || '—'} · ${when}${u.row_count ? (' · ' + fmtN(u.row_count) + ' rows') : ''}${sz ? (' · ' + sz) : ''}${isOwner ? ' · <b style="color:#0f5e45">you</b>' : ''}</div></div>
         <div class="ract">${view}${dl}${del}</div></div>`;
-    }).join('');
-  }catch(e){list.innerHTML='<div class="empty">Could not load history.</div>';}
-}
-async function fetchStored(u){
-  const res=await fetch(publicUrl(u.storage_path));
-  if(!res.ok) throw new Error('File not reachable (HTTP '+res.status+').');
-  return await res.arrayBuffer();
-}
-async function downloadUpload(id){
-  const u=RECENT[id]; if(!u||!u.storage_path)return;
-  showLoad('Fetching file…');
-  try{const buf=await fetchStored(u);
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf]));a.download=u.file_name;a.click();
-  }catch(e){setMsg('Could not download: '+(e.message||e),'err');}
-  hideLoad();
-}
-async function viewUpload(id){
-  const u=RECENT[id]; if(!u||!u.storage_path)return;
-  const proc=REPORTS[u.report_type]; if(!proc){setMsg('Unknown report type.','err');return;}
-  showLoad('Opening "'+u.file_name+'" …');
-  setTimeout(async()=>{ try{
-    const buf=await fetchStored(u);
-    const wb=XLSX.read(buf,{type:'array',cellDates:true,dense:true,WTF:false});
-    CURRENT=u.report_type; PROC=proc;
-    document.getElementById('brandSub').textContent=proc.meta.name;
-    document.getElementById('chosenName').textContent=proc.meta.name;
-    const {rows,note}=proc.process(wb);
-    if(!rows.length) throw new Error('No data rows in this file.');
-    RAW=rows; sortKey=null; msState={}; buildFilters(); applyFilters();
-    document.getElementById('selectView').style.display='none';
-    document.getElementById('uploadView').style.display='none';
-    document.getElementById('dashView').style.display='block';
-    ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(x=>document.getElementById(x).disabled=false);
-    setMsg(`<b>Viewing ${proc.meta.name}:</b> ${u.file_name} — ${note}`,'ok');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch(e){ setMsg('Could not open this report: '+(e.message||e),'err'); }
-  hideLoad(); }, 60);
-}
-async function deleteUpload(id,reportType){
-  if(!SB||!USER)return;
-  if(!confirm('Delete this file? This cannot be undone.'))return;
-  try{const{data,error}=await SB.rpc('delete_upload',{p_token:USER.token,p_id:id});
-    if(error)throw error;
-    if(!data.ok){alert(data.error||'Could not delete.');return;}
-    loadRecent(reportType);
-  }catch(e){alert('Could not delete: '+(e.message||e));}
-}
-
-/* ===================== REPORT REGISTRY ===================== */
-const REPORTS={};
-
-REPORTS.rental=(function(){
-  const DUMP={asset:['equipmentnumber','equipment','assetcode'],date:['date'],party:['partyname','clientname'],
-    site:['sitecode'],location:['sitelocation','location'],make:['make'],model:['model'],
-    fleet:['fleettype','department'],hrs:['runninghrs','workedhours'],status:['status']};
-  const STATUS=[['working','Working','#1d9e75'],['idle','Idle','#f59e0b'],['bdwn','Breakdown','#d8504c'],['transit','In transit','#2f6db0'],['free','Free','#8a98a4']];
-  const STD=260/30;
-  function process(wb){
-    const aoa=sheetToAoa(wb,'Master'); if(!aoa.length)throw new Error('The sheet is empty.');
-    const hi=findHeader(aoa,['equipmentnumber','assetcode']); const headers=(aoa[hi]||[]).map(String); const m=mapCols(headers,DUMP);
-    for(const f of ['asset','date','status','hrs']) if(m[f]===undefined)
-      throw new Error('Missing a needed Rental column ('+f+'). Expected equipmentnumber, date, status, running_hrs.');
-    const groups=new Map();
-    for(let i=hi+1;i<aoa.length;i++){const r=aoa[i];if(!r)continue;
-      const asset=String(r[m.asset]||'').trim();const d=toDate(r[m.date]);if(!asset||!d)continue;
-      const site=m.site!=null?String(r[m.site]||'').trim():'';const status=String(r[m.status]||'').trim();const hrs=numv(r[m.hrs]);
-      const key=asset+'¦'+site+'¦'+ym(d);let g=groups.get(key);
-      if(!g){g={asset,site,minD:d,maxD:d,worked:0,make:'',model:'',dept:'',client:'',location:'',
-        allDates:new Set(),st:{Working:new Set(),Idle:new Set(),Breakdown:new Set(),Transit:new Set(),'Free Asset':new Set(),Maintenance:new Set()}};groups.set(key,g);}
-      if(d<g.minD)g.minD=d;if(d>g.maxD)g.maxD=d;g.worked+=hrs;
-      const dk=ymd(d);g.allDates.add(dk);if(g.st[status])g.st[status].add(dk);
-      if(!g.make&&m.make!=null&&r[m.make])g.make=String(r[m.make]).trim();
-      if(!g.model&&m.model!=null&&r[m.model])g.model=String(r[m.model]).trim();
-      if(!g.dept&&m.fleet!=null&&r[m.fleet])g.dept=String(r[m.fleet]).trim().toUpperCase();
-      if(!g.client&&m.party!=null&&r[m.party])g.client=String(r[m.party]).trim();
-      if(!g.location&&m.location!=null&&r[m.location])g.location=String(r[m.location]).trim();}
-    const out=[];
-    for(const g of groups.values()){
-      const total=g.allDates.size,free=g.st['Free Asset'].size,transit=g.st.Transit.size,bdwn=g.st.Breakdown.size,idle=g.st.Idle.size,working=g.st.Working.size;
-      const deployed=total-free-transit,billing=idle+working,worked=Math.round(g.worked*100)/100,woHour=STD*billing;
-      out.push({asset:g.asset,make:g.make,model:g.model,yom:'',dept:g.dept||'—',site:g.site,client:g.client,location:g.location,
-        month:monthLabel(g.minD),start:g.minD,close:g.maxD,total,free,transit,deployed,bdwn,idle,working,billing,worked,woHour,utilHrs:woHour?worked/woHour:0});}
-    out.sort((a,b)=>a.month<b.month?-1:a.month>b.month?1:a.dept<b.dept?-1:a.dept>b.dept?1:a.asset<b.asset?-1:1);
-    return {rows:out,note:`Built ${fmtN(out.length)} deployment rows from ${fmtN(new Set(out.map(r=>r.asset)).size)} assets.`};
-  }
-  function kpis(view){const assets=new Set(view.map(x=>x.asset)).size,wh=sum(view,'worked'),wo=sum(view,'woHour'),util=wo?wh/wo:0;
-    return [['Equipment Count',fmtN(assets),`${fmtN(view.length)} deployments`,'#2f6db0'],
-      ['Worked Hours',fmtN(wh,2),'total running hours','#1d9e75'],
-      ['Avg Utilisation',fmtPct(util),'worked hrs ÷ available hrs','#f59e0b'],
-      ['Working Days',fmtN(sum(view,'working')),'days in working status','#1d9e75'],
-      ['Idle Days',fmtN(sum(view,'idle')),'days in idle status','#f59e0b'],
-      ['Breakdown Days',fmtN(sum(view,'bdwn')),'days in breakdown','#d8504c'],
-      ['In Transit Days',fmtN(sum(view,'transit')),'days in transit','#2f6db0'],
-      ['Free Days',fmtN(sum(view,'free')),'free-asset days','#8a98a4']];}
-  function charts(view){const opts=g=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...g});
-    const gs=(k,v)=>{const o={};view.forEach(r=>{const x=r[k]||'—';o[x]=(o[x]||0)+(+r[v]||0);});return o;};
-    return [
-      {title:'Worked hours by department',sub:'total running hours',height:300,render(cv){const e=Object.entries(gs('dept','worked')).sort((a,b)=>b[1]-a[1]).slice(0,10);
-        return new Chart(cv,{type:'bar',data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>Math.round(x[1])),backgroundColor:'#2f6db0',borderRadius:5}]},options:opts({scales:{y:{ticks:{callback:v=>fmtN(v)}},x:{ticks:{maxRotation:50,autoSkip:false,font:{size:10}}}}})});}},
-      {title:'Day-status mix',sub:'how fleet days were spent',height:300,legend:true,render(cv){const st=STATUS.map(([k,l,c])=>({l,c,v:sum(view,k)}));const tot=st.reduce((s,x)=>s+x.v,0)||1;
-        cv._legend=st.map(s=>`<span><i style="background:${s.c}"></i>${s.l} ${fmtPct(s.v/tot)}</span>`).join('');
-        return new Chart(cv,{type:'doughnut',data:{labels:st.map(s=>s.l),datasets:[{data:st.map(s=>s.v),backgroundColor:st.map(s=>s.c),borderWidth:2,borderColor:'#fff'}]},options:opts({cutout:'58%'})});}},
-      {title:'Average utilisation by department',sub:'worked ÷ available hours',height:300,render(cv){const byd={};view.forEach(r=>{(byd[r.dept]=byd[r.dept]||[]).push(r);});
-        const e=Object.entries(byd).map(([d,a])=>{const w=sum(a,'worked'),o=sum(a,'woHour');return[d,o?w/o:0];}).sort((a,b)=>b[1]-a[1]).slice(0,10);
-        return new Chart(cv,{type:'bar',data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>+(x[1]*100).toFixed(1)),backgroundColor:'#f59e0b',borderRadius:5}]},options:opts({scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{maxRotation:50,autoSkip:false,font:{size:10}}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'% utilisation'}}}})});}},
-      {title:'Top 12 assets by worked hours',sub:'highest-running machines',height:340,render(cv){const t=[...view].sort((a,b)=>b.worked-a.worked).slice(0,12);
-        return new Chart(cv,{type:'bar',data:{labels:t.map(r=>r.asset),datasets:[{data:t.map(r=>Math.round(r.worked)),backgroundColor:'#163a5c',borderRadius:5}]},options:opts({indexAxis:'y',scales:{x:{ticks:{callback:v=>fmtN(v)}},y:{ticks:{font:{size:10.5}}}}})});}},
-    ];}
-  const columns=[
-    {key:'_sr',label:'Sr No',type:'sr'},{key:'asset',label:'Asset Code',type:'text'},{key:'make',label:'Make',type:'text'},
-    {key:'model',label:'Model',type:'text'},{key:'yom',label:'YOM',type:'text'},{key:'dept',label:'Department',type:'text'},
-    {key:'site',label:'Site Code',type:'text'},{key:'client',label:'Client Name',type:'text'},{key:'location',label:'Location',type:'text'},
-    {key:'month',label:'Month/Year',type:'text'},{key:'start',label:'Start Date',type:'date'},{key:'close',label:'Close Date',type:'date'},
-    {key:'total',label:'Total Days',type:'int'},{key:'free',label:'Free Days',type:'int'},{key:'transit',label:'In Transit Days',type:'int'},
-    {key:'deployed',label:'Deployed Days',type:'int'},{key:'bdwn',label:'Breakdown Days',type:'int'},{key:'idle',label:'Idle Days',type:'int'},
-    {key:'working',label:'Working Days',type:'int'},{key:'worked',label:'Worked Hours',type:'num2'}];
-  // ALIGNMENT: the on-screen table shows exactly the columns of the Excel export
-  const tableColumns=columns.map(c=>({key:c.key,label:c.label,
-    fmt:c.type==='sr'?'sr':c.type==='date'?'date':c.type==='num2'?'num2':c.type==='int'?'int':'text'}));
-  const filters=[{key:'month',label:'Month / Year'},{key:'dept',label:'Department',multi:true},{key:'client',label:'Client'}];
-  return {meta:{name:'P&M Report Analyzer',tagline:'Daily equipment logsheet → utilisation & deployment summary',
-      icon:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-5h14l2 5"/><path d="M5 13h14v5H5z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg>'},
-    hint:'Upload the raw daily logsheet (equipmentnumber, date, status, running_hrs) or a workbook with a <b>Master</b> sheet. Large legacy <b>.xls</b> read best if you Save As <b>.xlsx</b> first.',
-    sheetName:'Summery report',exportName:'VisionInfra-Rental-Report',
-    process,kpis,charts,columns,tableColumns,filters,searchKeys:['asset','site','location','make','model','client']};
-})();
-
-REPORTS.stock=(function(){
-  let HEADERS=[];
-  function process(wb){const aoa=sheetToAoa(wb);if(!aoa.length)throw new Error('The sheet is empty.');
-    HEADERS=(aoa[0]||[]).map(h=>String(h||'').trim()).filter(h=>h!==''); if(!HEADERS.length)throw new Error('No header row found.');
-    const rows=[];for(let i=1;i<aoa.length;i++){const r=aoa[i];if(!r||r.every(c=>c===''||c==null))continue;
-      const o={};HEADERS.forEach((h,c)=>{let v=r[c];if(v instanceof Date)v=ymd(v);o['c'+c]=v??'';});rows.push(o);}
-    return {rows,note:`Loaded ${fmtN(rows.length)} stock rows × ${HEADERS.length} columns.`};}
-  function numCols(rows){return HEADERS.map((h,c)=>({h,c})).filter(({c})=>rows.some(r=>r['c'+c]!==''&&isFinite(numv(r['c'+c]))));}
-  function kpis(view){const k=[['Stock Rows',fmtN(view.length),'records in view','#2f6db0'],['Columns',String(HEADERS.length),'fields','#163a5c']];
-    numCols(view).slice(0,3).forEach(({h,c},i)=>k.push([h,fmtN(sum(view.map(r=>({v:numv(r['c'+c])})),'v'),2),'total',['#1d9e75','#f59e0b','#8a5a06'][i]||'#2f6db0']));return k;}
-  function charts(view){
-    if(!view.length)return [];
-    const ncs=numCols(view); if(!ncs.length)return [];
-    const opts=g=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...g});
-    const num=ncs[0];
-    let cat=null;
-    HEADERS.forEach((h,c)=>{ if(cat||c===num.c)return;
-      const vals=view.map(r=>r['c'+c]); const distinct=new Set(vals).size;
-      const ratio=vals.filter(v=>v!==''&&isFinite(numv(v))).length/(vals.length||1);
-      if(ratio<0.5 && distinct>1 && distinct<=40) cat={h,c}; });
-    const out=[];
-    if(cat){
-      out.push({title:`${num.h} by ${cat.h}`,sub:'top 12 categories',height:320,render(cv){
-        const o={};view.forEach(r=>{const k=r['c'+cat.c]||'—';o[k]=(o[k]||0)+numv(r['c'+num.c]);});
-        const e=Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,12);
-        return new Chart(cv,{type:'bar',data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>Math.round(x[1]*100)/100),backgroundColor:'#2f6db0',borderRadius:5}]},
-          options:opts({scales:{y:{ticks:{callback:v=>fmtN(v)}},x:{ticks:{maxRotation:50,autoSkip:false,font:{size:10}}}}})});
-      }});
+        }).join('');
+      } catch (e) { list.innerHTML = '<div class="empty">Could not load history.</div>'; }
     }
-    if(ncs.length>=2){const n2=ncs[1];const COL=['#2f6db0','#1d9e75','#f59e0b','#163a5c','#8a98a4','#d8504c','#6f57c2','#0a66c2'];
-      out.push({title:`${n2.h} share`,sub:'by '+(cat?cat.h:'row'),height:320,render(cv){
-        const o={};view.forEach(r=>{const k=cat?(r['c'+cat.c]||'—'):'All';o[k]=(o[k]||0)+numv(r['c'+n2.c]);});
-        const e=Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,8);
-        return new Chart(cv,{type:'doughnut',data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>Math.round(x[1]*100)/100),backgroundColor:e.map((_,i)=>COL[i%COL.length]),borderWidth:2,borderColor:'#fff'}]},
-          options:opts({cutout:'56%',plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:11}}}}})});
-      }});
+    async function fetchStored(u) {
+      const res = await fetch(publicUrl(u.storage_path));
+      if (!res.ok) throw new Error('File not reachable (HTTP ' + res.status + ').');
+      return await res.arrayBuffer();
     }
-    return out;}
-  return {meta:{name:'Stock Report',tagline:'Inventory / stock export — generic preview (custom rules pluggable)',soon:true,
-      icon:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>'},
-    hint:'Upload any stock/inventory Excel. For now it previews and re-exports your data as-is — a dedicated Stock processor can be plugged in here later.',
-    sheetName:'Stock Report',exportName:'VisionInfra-Stock-Report',
-    process,kpis,charts,
-    get columns(){return HEADERS.map((h,c)=>({key:'c'+c,label:h,type:'text'}));},
-    get tableColumns(){return HEADERS.map((h,c)=>({key:'c'+c,label:h,fmt:'text'}));},
-    filters:[],searchKeys:null};
-})();
+    async function downloadUpload(id) {
+      const u = RECENT[id]; if (!u || !u.storage_path) return;
+      showLoad('Fetching file…');
+      try {
+        const buf = await fetchStored(u);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = u.file_name; a.click();
+      } catch (e) { setMsg('Could not download: ' + (e.message || e), 'err'); }
+      hideLoad();
+    }
+    async function viewUpload(id) {
+      const u = RECENT[id]; if (!u || !u.storage_path) return;
+      const proc = REPORTS[u.report_type]; if (!proc) { setMsg('Unknown report type.', 'err'); return; }
+      showLoad('Opening "' + u.file_name + '" …');
+      setTimeout(async () => {
+        try {
+          const buf = await fetchStored(u);
+          const wb = XLSX.read(buf, { type: 'array', cellDates: true, dense: true, WTF: false });
+          CURRENT = u.report_type; PROC = proc;
+          document.getElementById('brandSub').textContent = proc.meta.name;
+          document.getElementById('chosenName').textContent = proc.meta.name;
+          const { rows, note } = proc.process(wb);
+          if (!rows.length) throw new Error('No data rows in this file.');
+          RAW = rows; sortKey = null; msState = {}; buildFilters(); applyFilters();
+          document.getElementById('selectView').style.display = 'none';
+          document.getElementById('uploadView').style.display = 'none';
+          document.getElementById('dashView').style.display = 'block';
+          ['btnReset', 'btnCsv', 'btnPdf', 'btnXlsx'].forEach(x => document.getElementById(x).disabled = false);
+          setMsg(`<b>Viewing ${proc.meta.name}:</b> ${u.file_name} — ${note}`, 'ok');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (e) { setMsg('Could not open this report: ' + (e.message || e), 'err'); }
+        hideLoad();
+      }, 60);
+    }
+    async function deleteUpload(id, reportType) {
+      if (!SB || !USER) return;
+      if (!confirm('Delete this file? This cannot be undone.')) return;
+      try {
+        const { data, error } = await SB.rpc('delete_upload', { p_token: USER.token, p_id: id });
+        if (error) throw error;
+        if (!data.ok) { alert(data.error || 'Could not delete.'); return; }
+        loadRecent(reportType);
+      } catch (e) { alert('Could not delete: ' + (e.message || e)); }
+    }
 
-/* ===================== APP SHELL ===================== */
-let CURRENT=null,PROC=null,RAW=[],VIEW=[],sortKey=null,sortDir=-1,chartObjs=[],msState={};
+    /* ===================== REPORT REGISTRY ===================== */
+    const REPORTS = {};
 
-function renderCards(){document.getElementById('reportCards').innerHTML=Object.entries(REPORTS).map(([id,p])=>
-  `<div class="rcard ${p.meta.soon?'soon':''}" data-id="${id}">${p.meta.soon?'<span class="tag">UNDER DEVELOPMENT</span>':''}
+    REPORTS.rental = (function () {
+      const DUMP = {
+        asset: ['equipmentnumber', 'equipment', 'assetcode'], date: ['date'], party: ['partyname', 'clientname'],
+        site: ['sitecode'], location: ['sitelocation', 'location'], make: ['make'], model: ['model'],
+        fleet: ['fleettype', 'department'], hrs: ['runninghrs', 'workedhours'], status: ['status']
+      };
+      const STATUS = [['working', 'Working', '#1d9e75'], ['idle', 'Idle', '#f59e0b'], ['bdwn', 'Breakdown', '#d8504c'], ['transit', 'In transit', '#2f6db0'], ['free', 'Free', '#8a98a4']];
+      const STD = 260 / 30;
+      function process(wb) {
+        const aoa = sheetToAoa(wb, 'Master'); if (!aoa.length) throw new Error('The sheet is empty.');
+        const hi = findHeader(aoa, ['equipmentnumber', 'assetcode']); const headers = (aoa[hi] || []).map(String); const m = mapCols(headers, DUMP);
+        for (const f of ['asset', 'date', 'status', 'hrs']) if (m[f] === undefined)
+          throw new Error('Missing a needed Rental column (' + f + '). Expected equipmentnumber, date, status, running_hrs.');
+        const groups = new Map();
+        for (let i = hi + 1; i < aoa.length; i++) {
+          const r = aoa[i]; if (!r) continue;
+          const asset = String(r[m.asset] || '').trim(); const d = toDate(r[m.date]); if (!asset || !d) continue;
+          const site = m.site != null ? String(r[m.site] || '').trim() : ''; const status = String(r[m.status] || '').trim(); const hrs = numv(r[m.hrs]);
+          const key = asset + '¦' + site + '¦' + ym(d); let g = groups.get(key);
+          if (!g) {
+            g = {
+              asset, site, minD: d, maxD: d, worked: 0, make: '', model: '', dept: '', client: '', location: '',
+              allDates: new Set(), st: { Working: new Set(), Idle: new Set(), Breakdown: new Set(), Transit: new Set(), 'Free Asset': new Set(), Maintenance: new Set() }
+            }; groups.set(key, g);
+          }
+          if (d < g.minD) g.minD = d; if (d > g.maxD) g.maxD = d; g.worked += hrs;
+          const dk = ymd(d); g.allDates.add(dk); if (g.st[status]) g.st[status].add(dk);
+          if (!g.make && m.make != null && r[m.make]) g.make = String(r[m.make]).trim();
+          if (!g.model && m.model != null && r[m.model]) g.model = String(r[m.model]).trim();
+          if (!g.dept && m.fleet != null && r[m.fleet]) g.dept = String(r[m.fleet]).trim().toUpperCase();
+          if (!g.client && m.party != null && r[m.party]) g.client = String(r[m.party]).trim();
+          if (!g.location && m.location != null && r[m.location]) g.location = String(r[m.location]).trim();
+        }
+        const out = [];
+        for (const g of groups.values()) {
+          const total = g.allDates.size, free = g.st['Free Asset'].size, transit = g.st.Transit.size, bdwn = g.st.Breakdown.size, idle = g.st.Idle.size, working = g.st.Working.size;
+          const deployed = total - free - transit, billing = idle + working, worked = Math.round(g.worked * 100) / 100, woHour = STD * billing;
+          out.push({
+            asset: g.asset, make: g.make, model: g.model, yom: '', dept: g.dept || '—', site: g.site, client: g.client, location: g.location,
+            month: monthLabel(g.minD), start: g.minD, close: g.maxD, total, free, transit, deployed, bdwn, idle, working, billing, worked, woHour, utilHrs: woHour ? worked / woHour : 0
+          });
+        }
+        out.sort((a, b) => a.month < b.month ? -1 : a.month > b.month ? 1 : a.dept < b.dept ? -1 : a.dept > b.dept ? 1 : a.asset < b.asset ? -1 : 1);
+        return { rows: out, note: `Built ${fmtN(out.length)} deployment rows from ${fmtN(new Set(out.map(r => r.asset)).size)} assets.` };
+      }
+      function kpis(view) {
+        const assets = new Set(view.map(x => x.asset)).size, wh = sum(view, 'worked'), wo = sum(view, 'woHour'), util = wo ? wh / wo : 0;
+        return [['Equipment Count', fmtN(assets), `${fmtN(view.length)} deployments`, '#2f6db0'],
+        ['Worked Hours', fmtN(wh, 2), 'total running hours', '#1d9e75'],
+        ['Avg Utilisation', fmtPct(util), 'worked hrs ÷ available hrs', '#f59e0b'],
+        ['Working Days', fmtN(sum(view, 'working')), 'days in working status', '#1d9e75'],
+        ['Idle Days', fmtN(sum(view, 'idle')), 'days in idle status', '#f59e0b'],
+        ['Breakdown Days', fmtN(sum(view, 'bdwn')), 'days in breakdown', '#d8504c'],
+        ['In Transit Days', fmtN(sum(view, 'transit')), 'days in transit', '#2f6db0'],
+        ['Free Days', fmtN(sum(view, 'free')), 'free-asset days', '#8a98a4']];
+      }
+      function charts(view) {
+        const opts = g => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...g });
+        const gs = (k, v) => { const o = {}; view.forEach(r => { const x = r[k] || '—'; o[x] = (o[x] || 0) + (+r[v] || 0); }); return o; };
+        return [
+          {
+            title: 'Worked hours by department', sub: 'total running hours', height: 300, render(cv) {
+              const e = Object.entries(gs('dept', 'worked')).sort((a, b) => b[1] - a[1]).slice(0, 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1])), backgroundColor: '#2f6db0', borderRadius: 5 }] }, options: opts({ scales: { y: { ticks: { callback: v => fmtN(v) } }, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 10 } } } } }) });
+            }
+          },
+          {
+            title: 'Day-status mix', sub: 'how fleet days were spent', height: 300, legend: true, render(cv) {
+              const st = STATUS.map(([k, l, c]) => ({ l, c, v: sum(view, k) })); const tot = st.reduce((s, x) => s + x.v, 0) || 1;
+              cv._legend = st.map(s => `<span><i style="background:${s.c}"></i>${s.l} ${fmtPct(s.v / tot)}</span>`).join('');
+              return new Chart(cv, { type: 'doughnut', data: { labels: st.map(s => s.l), datasets: [{ data: st.map(s => s.v), backgroundColor: st.map(s => s.c), borderWidth: 2, borderColor: '#fff' }] }, options: opts({ cutout: '58%' }) });
+            }
+          },
+          {
+            title: 'Average utilisation by department', sub: 'worked ÷ available hours', height: 300, render(cv) {
+              const byd = {}; view.forEach(r => { (byd[r.dept] = byd[r.dept] || []).push(r); });
+              const e = Object.entries(byd).map(([d, a]) => { const w = sum(a, 'worked'), o = sum(a, 'woHour'); return [d, o ? w / o : 0]; }).sort((a, b) => b[1] - a[1]).slice(0, 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => +(x[1] * 100).toFixed(1)), backgroundColor: '#f59e0b', borderRadius: 5 }] }, options: opts({ scales: { y: { ticks: { callback: v => v + '%' } }, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 10 } } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y + '% utilisation' } } } }) });
+            }
+          },
+          {
+            title: 'Top 12 assets by worked hours', sub: 'highest-running machines', height: 340, render(cv) {
+              const t = [...view].sort((a, b) => b.worked - a.worked).slice(0, 12);
+              return new Chart(cv, { type: 'bar', data: { labels: t.map(r => r.asset), datasets: [{ data: t.map(r => Math.round(r.worked)), backgroundColor: '#163a5c', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', scales: { x: { ticks: { callback: v => fmtN(v) } }, y: { ticks: { font: { size: 10.5 } } } } }) });
+            }
+          },
+        ];
+      }
+      const columns = [
+        { key: '_sr', label: 'Sr No', type: 'sr' }, { key: 'asset', label: 'Asset Code', type: 'text' }, { key: 'make', label: 'Make', type: 'text' },
+        { key: 'model', label: 'Model', type: 'text' }, { key: 'yom', label: 'YOM', type: 'text' }, { key: 'dept', label: 'Department', type: 'text' },
+        { key: 'site', label: 'Site Code', type: 'text' }, { key: 'client', label: 'Client Name', type: 'text' }, { key: 'location', label: 'Location', type: 'text' },
+        { key: 'month', label: 'Month/Year', type: 'text' }, { key: 'start', label: 'Start Date', type: 'date' }, { key: 'close', label: 'Close Date', type: 'date' },
+        { key: 'total', label: 'Total Days', type: 'int' }, { key: 'free', label: 'Free Days', type: 'int' }, { key: 'transit', label: 'In Transit Days', type: 'int' },
+        { key: 'deployed', label: 'Deployed Days', type: 'int' }, { key: 'bdwn', label: 'Breakdown Days', type: 'int' }, { key: 'idle', label: 'Idle Days', type: 'int' },
+        { key: 'working', label: 'Working Days', type: 'int' }, { key: 'worked', label: 'Worked Hours', type: 'num2' }];
+      // ALIGNMENT: the on-screen table shows exactly the columns of the Excel export
+      const tableColumns = columns.map(c => ({
+        key: c.key, label: c.label,
+        fmt: c.type === 'sr' ? 'sr' : c.type === 'date' ? 'date' : c.type === 'num2' ? 'num2' : c.type === 'int' ? 'int' : 'text'
+      }));
+      const filters = [{ key: 'month', label: 'Month / Year' }, { key: 'dept', label: 'Department', multi: true }, { key: 'client', label: 'Client' }];
+      return {
+        meta: {
+          name: 'P&M Report Analyzer', tagline: 'Daily equipment logsheet → utilisation & deployment summary',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-5h14l2 5"/><path d="M5 13h14v5H5z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg>'
+        },
+        hint: 'Upload the raw daily logsheet (equipmentnumber, date, status, running_hrs) or a workbook with a <b>Master</b> sheet. Large legacy <b>.xls</b> read best if you Save As <b>.xlsx</b> first.',
+        sheetName: 'Summery report', exportName: 'VisionInfra-Rental-Report',
+        process, kpis, charts, columns, tableColumns, filters, searchKeys: ['asset', 'site', 'location', 'make', 'model', 'client']
+      };
+    })();
+
+    REPORTS.stock = (function () {
+      let HEADERS = [];
+      function process(wb) {
+        const aoa = sheetToAoa(wb); if (!aoa.length) throw new Error('The sheet is empty.');
+        HEADERS = (aoa[0] || []).map(h => String(h || '').trim()).filter(h => h !== ''); if (!HEADERS.length) throw new Error('No header row found.');
+        const rows = []; for (let i = 1; i < aoa.length; i++) {
+          const r = aoa[i]; if (!r || r.every(c => c === '' || c == null)) continue;
+          const o = {}; HEADERS.forEach((h, c) => { let v = r[c]; if (v instanceof Date) v = ymd(v); o['c' + c] = v ?? ''; }); rows.push(o);
+        }
+        return { rows, note: `Loaded ${fmtN(rows.length)} stock rows × ${HEADERS.length} columns.` };
+      }
+      function numCols(rows) { return HEADERS.map((h, c) => ({ h, c })).filter(({ c }) => rows.some(r => r['c' + c] !== '' && isFinite(numv(r['c' + c])))); }
+      function kpis(view) {
+        const k = [['Stock Rows', fmtN(view.length), 'records in view', '#2f6db0'], ['Columns', String(HEADERS.length), 'fields', '#163a5c']];
+        numCols(view).slice(0, 3).forEach(({ h, c }, i) => k.push([h, fmtN(sum(view.map(r => ({ v: numv(r['c' + c]) })), 'v'), 2), 'total', ['#1d9e75', '#f59e0b', '#8a5a06'][i] || '#2f6db0'])); return k;
+      }
+      function charts(view) {
+        if (!view.length) return [];
+        const ncs = numCols(view); if (!ncs.length) return [];
+        const opts = g => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...g });
+        const num = ncs[0];
+        let cat = null;
+        HEADERS.forEach((h, c) => {
+          if (cat || c === num.c) return;
+          const vals = view.map(r => r['c' + c]); const distinct = new Set(vals).size;
+          const ratio = vals.filter(v => v !== '' && isFinite(numv(v))).length / (vals.length || 1);
+          if (ratio < 0.5 && distinct > 1 && distinct <= 40) cat = { h, c };
+        });
+        const out = [];
+        if (cat) {
+          out.push({
+            title: `${num.h} by ${cat.h}`, sub: 'top 12 categories', height: 320, render(cv) {
+              const o = {}; view.forEach(r => { const k = r['c' + cat.c] || '—'; o[k] = (o[k] || 0) + numv(r['c' + num.c]); });
+              const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 12);
+              return new Chart(cv, {
+                type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1] * 100) / 100), backgroundColor: '#2f6db0', borderRadius: 5 }] },
+                options: opts({ scales: { y: { ticks: { callback: v => fmtN(v) } }, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 10 } } } } })
+              });
+            }
+          });
+        }
+        if (ncs.length >= 2) {
+          const n2 = ncs[1]; const COL = ['#2f6db0', '#1d9e75', '#f59e0b', '#163a5c', '#8a98a4', '#d8504c', '#6f57c2', '#0a66c2'];
+          out.push({
+            title: `${n2.h} share`, sub: 'by ' + (cat ? cat.h : 'row'), height: 320, render(cv) {
+              const o = {}; view.forEach(r => { const k = cat ? (r['c' + cat.c] || '—') : 'All'; o[k] = (o[k] || 0) + numv(r['c' + n2.c]); });
+              const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8);
+              return new Chart(cv, {
+                type: 'doughnut', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1] * 100) / 100), backgroundColor: e.map((_, i) => COL[i % COL.length]), borderWidth: 2, borderColor: '#fff' }] },
+                options: opts({ cutout: '56%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } })
+              });
+            }
+          });
+        }
+        return out;
+      }
+      return {
+        meta: {
+          name: 'Stock Report', tagline: 'Inventory / stock export — generic preview (custom rules pluggable)', soon: true,
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>'
+        },
+        hint: 'Upload any stock/inventory Excel. For now it previews and re-exports your data as-is — a dedicated Stock processor can be plugged in here later.',
+        sheetName: 'Stock Report', exportName: 'VisionInfra-Stock-Report',
+        process, kpis, charts,
+        get columns() { return HEADERS.map((h, c) => ({ key: 'c' + c, label: h, type: 'text' })); },
+        get tableColumns() { return HEADERS.map((h, c) => ({ key: 'c' + c, label: h, fmt: 'text' })); },
+        filters: [], searchKeys: null
+      };
+    })();
+
+    /* ===================== PO-GIN-BILL-PAYMENT (Stock sub-report) ===================== */
+    /* ===== EDITABLE CONFIG — tune these to match your Summary exactly ===== */
+    const POGIN_CONFIG = {
+      dateFrom: '2026-04-01',   // PO Date window (inclusive)
+      dateTo: '2026-06-10',
+      // ── Record-level inclusion filter ─────────────────────────────────────────
+      // The reference Summary counts ~2536 POs while the raw date-filtered dump has
+      // ~3264 — i.e. the report drops ~22% of POs by a business rule that is NOT
+      // present as any single column in the dump. Encode that rule here to hit the
+      // Summary exactly. Return false to drop a PO line. Default: include everything.
+      // Example you might use: return String(eg||'').toUpperCase().trim()!=='RENTAL';
+      includeRow(eg, dept, sub, status) { return true; },
+      // ── Division roll-up ──────────────────────────────────────────────────────
+      // Source of truth = EG "DIVISION" (col EG), split into the 9 report divisions
+      // using "Department" / "Sub Dept." where one EG value covers several report
+      // divisions (e.g. RENTAL → PAVER / EX-WL / GEN ASSET / ROLLER).
+      // Returns one of the 9 report divisions, or null to EXCLUDE the PO.
+      divisionOf(eg, dept, sub) {
+        eg = (eg || '').toUpperCase().trim(); dept = (dept || '').toUpperCase().trim(); sub = (sub || '').toUpperCase().trim();
+        if (eg === 'RENTAL') {
+          return {
+            'PAVER': 'PAVER', 'EXCAVATOR & WHEEL LOADER': 'EX-WL', 'GEN ASSET': 'GEN ASSET',
+            'ROLLER': 'ROLLER', 'MILLING': 'MILLING'
+          }[dept] || 'GEN ASSET';
+        }
+        if (eg === 'CONTRACT') return dept === 'MILLING' ? 'MILLING' : 'CONTRACT';
+        if (eg === 'CRUSHER') return 'CRUSHER';
+        if (eg === 'TRADING') return sub.indexOf('REFURBISH') >= 0 ? 'REFURBISHMENT' : 'STORE';
+        if (eg.indexOf('ADMIN') >= 0) return 'STORE';
+        return 'STORE';      // catch-all → set to `null` to EXCLUDE unmapped EG values
+      },
+      DIV_ORDER: ['CONTRACT', 'CRUSHER', 'EX-WL', 'GEN ASSET', 'MILLING', 'PAVER', 'REFURBISHMENT', 'ROLLER', 'STORE'],
+    };
+    const PO_STATUS_MAP = { 'Cancelled': 'cancelled', 'Short Close': 'shortclosed', 'Executed': 'closed', 'Pending': 'open' };
+
+    REPORTS.pogin = (function () {
+      let DIV = {}, CAT = {}, MON = {}, AGG = {};   // aggregates kept for charts/kpis
+      const monKey = d => d ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') : '';
+      function process(wb) {
+        const aoa = sheetToAoa(wb, 'Master Data'); if (aoa.length < 2) throw new Error('Master Data sheet looks empty.');
+        const hi = 0, H = (aoa[0] || []).map(h => String(h || '').trim()), idx = {}; H.forEach((h, i) => { if (!(h in idx)) idx[h] = i; });
+        const need = ['Purchae order No.', 'PO Date', 'PO STATUS', 'DIVISION', 'Department', 'Sub Dept.', 'ITEM CLASS', 'PO BASIC VALUE', 'GRN No', 'GRN DATE', 'GRN TAXABLE VALUE (GRN BASE)', 'PO ITEM CODE', 'PO SCH DETAILS', 'ITEM CODE (GRN)'];
+        for (const n of need) if (!(n in idx)) throw new Error('This file is missing the column "' + n + '". Upload a PO-GIN ERP dump (same format as the sample).');
+        const C = n => idx[n];
+        const lo = new Date(POGIN_CONFIG.dateFrom), hiD = new Date(POGIN_CONFIG.dateTo);
+        DIV = {}; CAT = {}; MON = {}; AGG = { po: new Set(), grn: new Set(), poval: 0, grnval: 0, bills: new Set(), pays: new Set() };
+        POGIN_CONFIG.DIV_ORDER.forEach(d => DIV[d] = { div: d, total: 0, cancelled: 0, shortclosed: 0, closed: 0, open: 0, poval: 0, grnval: 0 });
+        const seenPO = new Set(), seenPOline = new Set(), seenGRNline = new Set();
+        for (let i = hi + 1; i < aoa.length; i++) {
+          const r = aoa[i]; if (!r) continue;
+          const po = String(r[C('Purchae order No.')] || '').trim(); if (!po) continue;
+          const pdate = toDate(r[C('PO Date')]); if (!pdate || pdate < lo || pdate > hiD) continue;
+          const eg = r[C('DIVISION')], dept = r[C('Department')], sub = r[C('Sub Dept.')];
+          if (!POGIN_CONFIG.includeRow(eg, dept, sub, r[C('PO STATUS')])) continue;
+          const division = POGIN_CONFIG.divisionOf(eg, dept, sub); if (!division || !DIV[division]) continue;
+          const status = String(r[C('PO STATUS')] || '').trim(), sk = PO_STATUS_MAP[status];
+          // PO-level status counts (once per PO)
+          if (!seenPO.has(po)) {
+            seenPO.add(po); AGG.po.add(po);
+            const d = DIV[division]; d.total++; if (sk) d[sk]++;
+          }
+          // PO value (BR) — dedup PO-line
+          const plk = po + '¦' + (r[C('PO ITEM CODE')] || '') + '¦' + (r[C('PO SCH DETAILS')] || '');
+          if (!seenPOline.has(plk)) {
+            seenPOline.add(plk);
+            const v = numv(r[C('PO BASIC VALUE')]); DIV[division].poval += v; AGG.poval += v;
+            const cat = String(r[C('ITEM CLASS')] || '—').trim() || '—'; CAT[cat] = (CAT[cat] || 0) + v;
+            const mk = monKey(pdate); (MON[mk] = MON[mk] || { po: 0, grn: 0 }).po += v;
+          }
+          // GRN value (AW) — dedup GRN-line
+          const grn = String(r[C('GRN No')] || '').trim();
+          if (grn) {
+            AGG.grn.add(grn);
+            const glk = grn + '¦' + (r[C('ITEM CODE (GRN)')] || '');
+            if (!seenGRNline.has(glk)) {
+              seenGRNline.add(glk);
+              const gv = numv(r[C('GRN TAXABLE VALUE (GRN BASE)')]); DIV[division].grnval += gv; AGG.grnval += gv;
+              const gd = toDate(r[C('GRN DATE')]); if (gd) { const mk = monKey(gd); (MON[mk] = MON[mk] || { po: 0, grn: 0 }).grn += gv; }
+            }
+          }
+        }
+        const rows = POGIN_CONFIG.DIV_ORDER.map((d, i) => ({ sr: String(i + 1), ...DIV[d] }));
+        // totals row
+        const T = { sr: '', div: 'Total', total: 0, cancelled: 0, shortclosed: 0, closed: 0, open: 0, poval: 0, grnval: 0 };
+        rows.forEach(r => ['total', 'cancelled', 'shortclosed', 'closed', 'open', 'poval', 'grnval'].forEach(k => T[k] += r[k]));
+        rows.push(T);
+        return { rows, note: `${fmtN(AGG.po.size)} POs · ${fmtN(AGG.grn.size)} GRNs · PO value ₹${fmtN(AGG.poval, 0)} · processed dynamically.` };
+      }
+      function kpis() {
+        return [['Total Purchase Orders', fmtN(AGG.po.size), 'distinct POs in period', '#2f6db0'],
+        ['Total GRN Records', fmtN(AGG.grn.size), 'distinct GRNs', '#1d9e75'],
+        ['PO Value (Basic)', '₹' + fmtN(AGG.poval, 0), 'col BR · PO BASIC VALUE', '#163a5c'],
+        ['GRN Value (Taxable)', '₹' + fmtN(AGG.grnval, 0), 'col AW · GRN TAXABLE', '#0a66c2'],
+        ['Open POs', fmtN(sumKey('open')), 'pending POs', '#f59e0b'],
+        ['Cancelled POs', fmtN(sumKey('cancelled')), 'cancelled POs', '#d8504c']];
+      }
+      const sumKey = k => POGIN_CONFIG.DIV_ORDER.reduce((s, d) => s + (DIV[d] ? DIV[d][k] : 0), 0);
+      function charts() {
+        const opts = g => ({ responsive: true, maintainAspectRatio: false, ...g });
+        const divs = POGIN_CONFIG.DIV_ORDER, COL = { closed: '#1d9e75', open: '#f59e0b', cancelled: '#d8504c', shortclosed: '#8a98a4' };
+        return [
+          {
+            title: 'PO status by division', sub: 'open / closed / cancelled / short-closed', height: 330, legend: true, render(cv) {
+              cv._legend = Object.entries(COL).map(([k, c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('');
+              return new Chart(cv, {
+                type: 'bar', data: { labels: divs, datasets: ['closed', 'open', 'cancelled', 'shortclosed'].map(k => ({ label: k, data: divs.map(d => DIV[d][k]), backgroundColor: COL[k] })) },
+                options: opts({ plugins: { legend: { display: false } }, scales: { x: { stacked: true, ticks: { maxRotation: 50, font: { size: 10 } } }, y: { stacked: true } } })
+              });
+            }
+          },
+          {
+            title: 'PO value by division', sub: '₹ basic value (col BR)', height: 330, render(cv) {
+              return new Chart(cv, {
+                type: 'bar', data: { labels: divs, datasets: [{ data: divs.map(d => Math.round(DIV[d].poval)), backgroundColor: '#2f6db0', borderRadius: 5 }] },
+                options: opts({ plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => fmtN(v) } }, x: { ticks: { maxRotation: 50, font: { size: 10 } } } } })
+              });
+            }
+          },
+          {
+            title: 'PO value by category', sub: 'top 12 · ITEM CLASS', height: 330, render(cv) {
+              const e = Object.entries(CAT).sort((a, b) => b[1] - a[1]).slice(0, 12);
+              return new Chart(cv, {
+                type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1])), backgroundColor: '#f59e0b', borderRadius: 5 }] },
+                options: opts({ indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: v => fmtN(v) } }, y: { ticks: { font: { size: 10 } } } } })
+              });
+            }
+          },
+          {
+            title: 'Monthwise procurement', sub: 'PO basic vs GRN taxable', height: 330, legend: true, render(cv) {
+              const mk = Object.keys(MON).sort(); cv._legend = '<span><i style="background:#2f6db0"></i>PO value</span><span><i style="background:#1d9e75"></i>GRN value</span>';
+              return new Chart(cv, {
+                type: 'bar', data: { labels: mk, datasets: [{ label: 'PO', data: mk.map(m => Math.round(MON[m].po)), backgroundColor: '#2f6db0', borderRadius: 4 }, { label: 'GRN', data: mk.map(m => Math.round(MON[m].grn)), backgroundColor: '#1d9e75', borderRadius: 4 }] },
+                options: opts({ plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => fmtN(v) } } } })
+              });
+            }
+          },
+        ];
+      }
+      const columns = [{ key: 'sr', label: 'Sr. No.', type: 'text' }, { key: 'div', label: 'Division', type: 'text' },
+      { key: 'total', label: 'Total PO Created', type: 'int' }, { key: 'cancelled', label: 'Cancelled PO', type: 'int' },
+      { key: 'shortclosed', label: 'Short Closed PO', type: 'int' }, { key: 'closed', label: 'Closed PO', type: 'int' },
+      { key: 'open', label: 'Open PO', type: 'int' }, { key: 'poval', label: 'PO Value (BR)', type: 'num2' },
+      { key: 'grnval', label: 'GRN Value (AW)', type: 'num2' }];
+      const tableColumns = columns.map(c => ({ key: c.key, label: c.label, fmt: c.type === 'num2' ? 'num2' : c.type === 'int' ? 'int' : 'text' }));
+      return {
+        meta: {
+          name: 'PO-GIN-BILL-PAYMENT', tagline: 'Stock · Open PO status & procurement summary from an ERP PO-GIN dump',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2"/><path d="M9 12h6M9 16h6"/></svg>'
+        },
+        hint: 'Upload the ERP-generated <b>PO-GIN</b> report (the workbook with a <b>Master Data</b> sheet, same format as the sample). Division roll-up &amp; the date window are in the editable <b>POGIN_CONFIG</b> block at the top of the file.',
+        sheetName: 'Open PO Status', exportName: 'VisionInfra-PO-GIN-Summary',
+        process, kpis, charts, columns, tableColumns, filters: [], searchKeys: ['div']
+      };
+    })();
+
+    /* ===================== APP SHELL ===================== */
+    let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {};
+
+    function renderCards() {
+      document.getElementById('reportCards').innerHTML = Object.entries(REPORTS).map(([id, p]) =>
+        `<div class="rcard ${p.meta.soon ? 'soon' : ''}" data-id="${id}">${p.meta.soon ? '<span class="tag">UNDER DEVELOPMENT</span>' : ''}
    <div class="ic">${p.meta.icon}</div><h3>${p.meta.name}</h3><p>${p.meta.tagline}</p></div>`).join('');
-  document.querySelectorAll('.rcard').forEach(c=>c.onclick=()=>selectReport(c.dataset.id));}
-function selectReport(id){CURRENT=id;PROC=REPORTS[id];msState={};
-  document.getElementById('chosenName').textContent=PROC.meta.name;
-  document.getElementById('brandSub').textContent=PROC.meta.name;
-  document.getElementById('uploadHint').innerHTML=PROC.hint||'';
-  document.getElementById('selectView').style.display='none';
-  document.getElementById('uploadView').style.display='block';
-  document.getElementById('dashView').style.display='none';setMsg('');loadRecent(id);}
-function changeType(){reset();document.getElementById('selectView').style.display='block';document.getElementById('uploadView').style.display='none';}
-const showLoad=t=>{document.getElementById('loadtext').textContent=t||'Processing…';document.getElementById('loader').classList.add('on');};
-const hideLoad=()=>document.getElementById('loader').classList.remove('on');
-function setMsg(html,cls){document.getElementById('msg').innerHTML=html?`<div class="alert ${cls}">${html}</div>`:'';}
+      document.querySelectorAll('.rcard').forEach(c => c.onclick = () => selectReport(c.dataset.id));
+    }
+    function selectReport(id) {
+      CURRENT = id; PROC = REPORTS[id]; msState = {};
+      document.getElementById('chosenName').textContent = PROC.meta.name;
+      document.getElementById('brandSub').textContent = PROC.meta.name;
+      document.getElementById('uploadHint').innerHTML = PROC.hint || '';
+      document.getElementById('selectView').style.display = 'none';
+      document.getElementById('uploadView').style.display = 'block';
+      document.getElementById('dashView').style.display = 'none'; setMsg(''); loadRecent(id);
+    }
+    function changeType() { reset(); document.getElementById('selectView').style.display = 'block'; document.getElementById('uploadView').style.display = 'none'; }
+    const showLoad = t => { document.getElementById('loadtext').textContent = t || 'Processing…'; document.getElementById('loader').classList.add('on'); };
+    const hideLoad = () => document.getElementById('loader').classList.remove('on');
+    function setMsg(html, cls) { document.getElementById('msg').innerHTML = html ? `<div class="alert ${cls}">${html}</div>` : ''; }
 
-function handleFile(file){if(!file)return;
-  if(!/\.(xlsx|xls|csv)$/i.test(file.name)){setMsg('<b>Unsupported file.</b> Upload an .xlsx, .xls or .csv.','err');return;}
-  setMsg('');const big=file.size>20*1024*1024;showLoad(big?'Reading large file — this can take a moment…':'Reading & processing…');
-  const rd=new FileReader();
-  rd.onerror=()=>{hideLoad();setMsg('<b>Could not read the file.</b>','err');};
-  rd.onload=e=>{setTimeout(()=>{try{
-    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true,dense:true,WTF:false});
-    const{rows,note}=PROC.process(wb);if(!rows.length)throw new Error('No data rows were read from this file.');
-    RAW=rows;sortKey=null;msState={};buildFilters();applyFilters();
-    document.getElementById('uploadView').style.display='none';document.getElementById('dashView').style.display='block';
-    ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(id=>document.getElementById(id).disabled=false);
-    setMsg(`<b>${PROC.meta.name} loaded.</b> ${note}`,'ok');
-    uploadAndRecord(CURRENT,file,rows.length);
-  }catch(err){document.getElementById('uploadView').style.display='block';
-    const isXls=/\.xls$/i.test(file.name);
-    setMsg(isXls?'<b>This .xls couldn\u2019t be read fully.</b> Please open it in Excel and use <b>Save As → .xlsx</b>, then upload the .xlsx.':'<b>'+err.message+'</b>','err');}
-  hideLoad();},big?60:300);};
-  rd.readAsArrayBuffer(file);}
+    function handleFile(file) {
+      if (!file) return;
+      if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { setMsg('<b>Unsupported file.</b> Upload an .xlsx, .xls or .csv.', 'err'); return; }
+      setMsg(''); const big = file.size > 20 * 1024 * 1024; showLoad(big ? 'Reading large file — this can take a moment…' : 'Reading & processing…');
+      const rd = new FileReader();
+      rd.onerror = () => { hideLoad(); setMsg('<b>Could not read the file.</b>', 'err'); };
+      rd.onload = e => {
+        setTimeout(() => {
+          try {
+            const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true, dense: true, WTF: false });
+            const { rows, note } = PROC.process(wb); if (!rows.length) throw new Error('No data rows were read from this file.');
+            RAW = rows; sortKey = null; msState = {}; buildFilters(); applyFilters();
+            document.getElementById('uploadView').style.display = 'none'; document.getElementById('dashView').style.display = 'block';
+            ['btnReset', 'btnCsv', 'btnPdf', 'btnXlsx'].forEach(id => document.getElementById(id).disabled = false);
+            setMsg(`<b>${PROC.meta.name} loaded.</b> ${note}`, 'ok');
+            uploadAndRecord(CURRENT, file, rows.length);
+          } catch (err) {
+            document.getElementById('uploadView').style.display = 'block';
+            const isXls = /\.xls$/i.test(file.name);
+            setMsg(isXls ? '<b>This .xls couldn\u2019t be read fully.</b> Please open it in Excel and use <b>Save As → .xlsx</b>, then upload the .xlsx.' : '<b>' + err.message + '</b>', 'err');
+          }
+          hideLoad();
+        }, big ? 60 : 300);
+      };
+      rd.readAsArrayBuffer(file);
+    }
 
-/* ----- filters (single + multi-select checkbox) ----- */
-function buildFilters(){const host=document.getElementById('filters');const fs=PROC.filters||[];
-  host.innerHTML=fs.map(f=>{
-    if(f.multi){msState[f.key]=new Set();
-      const opts=uniq(RAW,f.key);
-      return `<div class="field"><label>${f.label}</label>
+    /* ----- filters (single + multi-select checkbox) ----- */
+    function buildFilters() {
+      const host = document.getElementById('filters'); const fs = PROC.filters || [];
+      host.innerHTML = fs.map(f => {
+        if (f.multi) {
+          msState[f.key] = new Set();
+          const opts = uniq(RAW, f.key);
+          return `<div class="field"><label>${f.label}</label>
         <div class="ms" data-fk="${f.key}">
           <button type="button" class="ms-btn" id="msbtn-${f.key}">All ${f.label.toLowerCase()}</button>
           <div class="ms-panel">
             <div class="ms-head"><button data-act="all">Select all</button><button data-act="clear">Clear</button></div>
-            ${opts.map(o=>`<label class="msrow"><input type="checkbox" value="${String(o).replace(/"/g,'&quot;')}">${o}</label>`).join('')}
+            ${opts.map(o => `<label class="msrow"><input type="checkbox" value="${String(o).replace(/"/g, '&quot;')}">${o}</label>`).join('')}
           </div></div></div>`;
+        }
+        return `<div class="field"><label>${f.label}</label><select data-fk="${f.key}"><option value="">All</option>${uniq(RAW, f.key).map(v => `<option>${v}</option>`).join('')}</select></div>`;
+      }).join('') + (PROC.searchKeys ? `<div class="field grow"><label>Search</label><input type="search" id="fSearch" placeholder="type to filter…"></div>` : '')
+        + `<span class="pill" id="rowCount"></span>`;
+      host.querySelectorAll('select[data-fk]').forEach(s => s.onchange = applyFilters);
+      const se = document.getElementById('fSearch'); if (se) se.oninput = applyFilters;
+      host.querySelectorAll('.ms').forEach(ms => {
+        const fk = ms.dataset.fk; const btn = ms.querySelector('.ms-btn');
+        btn.onclick = e => { e.stopPropagation(); document.querySelectorAll('.ms').forEach(x => { if (x !== ms) x.classList.remove('open'); }); ms.classList.toggle('open'); };
+        ms.querySelectorAll('input[type=checkbox]').forEach(cb => cb.onchange = () => {
+          if (cb.checked) msState[fk].add(cb.value); else msState[fk].delete(cb.value); updateMsLabel(fk); applyFilters();
+        });
+        ms.querySelector('[data-act=all]').onclick = () => { ms.querySelectorAll('input').forEach(cb => { cb.checked = true; msState[fk].add(cb.value); }); updateMsLabel(fk); applyFilters(); };
+        ms.querySelector('[data-act=clear]').onclick = () => { ms.querySelectorAll('input').forEach(cb => cb.checked = false); msState[fk].clear(); updateMsLabel(fk); applyFilters(); };
+      });
     }
-    return `<div class="field"><label>${f.label}</label><select data-fk="${f.key}"><option value="">All</option>${uniq(RAW,f.key).map(v=>`<option>${v}</option>`).join('')}</select></div>`;
-  }).join('') + (PROC.searchKeys?`<div class="field grow"><label>Search</label><input type="search" id="fSearch" placeholder="type to filter…"></div>`:'')
-    + `<span class="pill" id="rowCount"></span>`;
-  host.querySelectorAll('select[data-fk]').forEach(s=>s.onchange=applyFilters);
-  const se=document.getElementById('fSearch');if(se)se.oninput=applyFilters;
-  host.querySelectorAll('.ms').forEach(ms=>{const fk=ms.dataset.fk;const btn=ms.querySelector('.ms-btn');
-    btn.onclick=e=>{e.stopPropagation();document.querySelectorAll('.ms').forEach(x=>{if(x!==ms)x.classList.remove('open');});ms.classList.toggle('open');};
-    ms.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{
-      if(cb.checked)msState[fk].add(cb.value);else msState[fk].delete(cb.value);updateMsLabel(fk);applyFilters();});
-    ms.querySelector('[data-act=all]').onclick=()=>{ms.querySelectorAll('input').forEach(cb=>{cb.checked=true;msState[fk].add(cb.value);});updateMsLabel(fk);applyFilters();};
-    ms.querySelector('[data-act=clear]').onclick=()=>{ms.querySelectorAll('input').forEach(cb=>cb.checked=false);msState[fk].clear();updateMsLabel(fk);applyFilters();};
-  });}
-function updateMsLabel(fk){const f=(PROC.filters||[]).find(x=>x.key===fk);const n=msState[fk].size;
-  document.getElementById('msbtn-'+fk).textContent=n?`${n} ${f.label.toLowerCase()} selected`:`All ${f.label.toLowerCase()}`;}
-document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open')));
+    function updateMsLabel(fk) {
+      const f = (PROC.filters || []).find(x => x.key === fk); const n = msState[fk].size;
+      document.getElementById('msbtn-' + fk).textContent = n ? `${n} ${f.label.toLowerCase()} selected` : `All ${f.label.toLowerCase()}`;
+    }
+    document.addEventListener('click', () => document.querySelectorAll('.ms.open').forEach(x => x.classList.remove('open')));
 
-function applyFilters(){const sels=[...document.querySelectorAll('#filters select[data-fk]')].map(s=>[s.dataset.fk,s.value]);
-  const q=norm((document.getElementById('fSearch')||{}).value||'');
-  VIEW=RAW.filter(r=>{
-    for(const[k,v]of sels){if(v&&String(r[k])!==v)return false;}
-    for(const k of Object.keys(msState)){const set=msState[k];if(set.size&&!set.has(String(r[k])))return false;}
-    if(q&&PROC.searchKeys){if(!norm(PROC.searchKeys.map(k=>r[k]).join(' ')).includes(q))return false;}
-    return true;});
-  render();}
-function render(){renderModHead();renderKpis();renderCharts();renderTable();const rc=document.getElementById('rowCount');if(rc)rc.textContent=`${fmtN(VIEW.length)} of ${fmtN(RAW.length)} rows`;}
-function renderModHead(){const mh=document.getElementById('modHead');if(!mh||!PROC)return;
-  mh.innerHTML=`<div class="mh-ic">${PROC.meta.icon}</div><div><div class="mh-t">${PROC.meta.name}</div><div class="mh-s">${PROC.meta.tagline}</div></div><span class="mh-tag">${CURRENT==='stock'?'Stock module':'Live dashboard'}</span>`;}
-function renderKpis(){document.getElementById('kpis').innerHTML=PROC.kpis(VIEW).map(([l,v,s,c])=>
-  `<div class="kpi"><div class="lab"><span class="dot" style="background:${c}"></span>${l}</div><div class="val">${v}</div><div class="sub">${s}</div></div>`).join('');}
-function renderCharts(){chartObjs.forEach(c=>c&&c.destroy());chartObjs=[];const specs=PROC.charts(VIEW)||[];const host=document.getElementById('charts');
-  if(!specs.length){host.innerHTML='';return;}
-  let html='';for(let i=0;i<specs.length;i+=2){html+='<div class="grid2">'+[specs[i],specs[i+1]].filter(Boolean).map((s,j)=>{const idx=i+j;
-    return `<div class="card"><h3>${s.title}</h3><div class="csub">${s.sub||''}</div>${s.legend?`<div class="legend" id="lg${idx}"></div>`:''}<div class="chartbox" style="height:${s.height||300}px"><canvas id="ch${idx}"></canvas></div></div>`;}).join('')+'</div>';}
-  host.innerHTML=html;
-  specs.forEach((s,idx)=>{const cv=document.getElementById('ch'+idx);if(!cv)return;const obj=s.render(cv);chartObjs.push(obj);
-    if(s.legend&&cv._legend){const lg=document.getElementById('lg'+idx);if(lg)lg.innerHTML=cv._legend;}});}
-function fmtCell(v,fmt){if(fmt==='date')return v&&v.toLocaleDateString?v.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):(v||'—');
-  if(fmt==='int')return fmtN(v);if(fmt==='num2')return fmtN(v,2);
-  if(fmt==='util'){const ub=v>=.5?'b-hi':v>=.2?'b-mid':'b-lo';return `<span class="badge ${ub}">${fmtPct(v||0)}</span>`;}
-  return (v===''||v==null)?'—':String(v);}
-function renderTable(){const cols=PROC.tableColumns;const th=document.querySelector('#tbl thead'),tb=document.querySelector('#tbl tbody');
-  th.innerHTML='<tr>'+cols.map(c=>`<th data-k="${c.key}">${c.label}${sortKey===c.key?`<span class="ar">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('')+'</tr>';
-  th.querySelectorAll('th').forEach(h=>h.onclick=()=>{const k=h.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}render();});
-  let rows=[...VIEW];
-  if(sortKey){rows.sort((a,b)=>{let x=a[sortKey],y=b[sortKey];if(x instanceof Date)x=+x,y=+y;
-    if(typeof x==='string'){x=x.toLowerCase();y=String(y).toLowerCase();return x<y?-sortDir:x>y?sortDir:0;}return ((+x||0)-(+y||0))*sortDir;});}
-  rows=rows.slice(0,400);
-  tb.innerHTML=rows.map((r,ri)=>'<tr>'+cols.map(c=>{const num=['int','num2','util','sr'].includes(c.fmt);
-    const val=c.fmt==='sr'?(ri+1):fmtCell(r[c.key],c.fmt);
-    return `<td class="${num?'num':''}" data-label="${c.label}">${val}</td>`;}).join('')+'</tr>').join('');
-  if(VIEW.length>400)tb.innerHTML+=`<tr><td colspan="${cols.length}" style="text-align:center;color:var(--hint);padding:14px">Showing first 400 of ${fmtN(VIEW.length)} — export for all.</td></tr>`;
-  document.getElementById('tableTitle').textContent=PROC.meta.name;}
+    function applyFilters() {
+      const sels = [...document.querySelectorAll('#filters select[data-fk]')].map(s => [s.dataset.fk, s.value]);
+      const q = norm((document.getElementById('fSearch') || {}).value || '');
+      VIEW = RAW.filter(r => {
+        for (const [k, v] of sels) { if (v && String(r[k]) !== v) return false; }
+        for (const k of Object.keys(msState)) { const set = msState[k]; if (set.size && !set.has(String(r[k]))) return false; }
+        if (q && PROC.searchKeys) { if (!norm(PROC.searchKeys.map(k => r[k]).join(' ')).includes(q)) return false; }
+        return true;
+      });
+      render();
+    }
+    function render() { renderModHead(); renderKpis(); renderCharts(); renderTable(); const rc = document.getElementById('rowCount'); if (rc) rc.textContent = `${fmtN(VIEW.length)} of ${fmtN(RAW.length)} rows`; }
+    function renderModHead() {
+      const mh = document.getElementById('modHead'); if (!mh || !PROC) return;
+      mh.innerHTML = `<div class="mh-ic">${PROC.meta.icon}</div><div><div class="mh-t">${PROC.meta.name}</div><div class="mh-s">${PROC.meta.tagline}</div></div><span class="mh-tag">${CURRENT === 'stock' ? 'Stock module' : 'Live dashboard'}</span>`;
+    }
+    function renderKpis() {
+      document.getElementById('kpis').innerHTML = PROC.kpis(VIEW).map(([l, v, s, c]) =>
+        `<div class="kpi"><div class="lab"><span class="dot" style="background:${c}"></span>${l}</div><div class="val">${v}</div><div class="sub">${s}</div></div>`).join('');
+    }
+    function renderCharts() {
+      chartObjs.forEach(c => c && c.destroy()); chartObjs = []; const specs = PROC.charts(VIEW) || []; const host = document.getElementById('charts');
+      if (!specs.length) { host.innerHTML = ''; return; }
+      let html = ''; for (let i = 0; i < specs.length; i += 2) {
+        html += '<div class="grid2">' + [specs[i], specs[i + 1]].filter(Boolean).map((s, j) => {
+          const idx = i + j;
+          return `<div class="card"><h3>${s.title}</h3><div class="csub">${s.sub || ''}</div>${s.legend ? `<div class="legend" id="lg${idx}"></div>` : ''}<div class="chartbox" style="height:${s.height || 300}px"><canvas id="ch${idx}"></canvas></div></div>`;
+        }).join('') + '</div>';
+      }
+      host.innerHTML = html;
+      specs.forEach((s, idx) => {
+        const cv = document.getElementById('ch' + idx); if (!cv) return; const obj = s.render(cv); chartObjs.push(obj);
+        if (s.legend && cv._legend) { const lg = document.getElementById('lg' + idx); if (lg) lg.innerHTML = cv._legend; }
+      });
+    }
+    function fmtCell(v, fmt) {
+      if (fmt === 'date') return v && v.toLocaleDateString ? v.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (v || '—');
+      if (fmt === 'int') return fmtN(v); if (fmt === 'num2') return fmtN(v, 2);
+      if (fmt === 'util') { const ub = v >= .5 ? 'b-hi' : v >= .2 ? 'b-mid' : 'b-lo'; return `<span class="badge ${ub}">${fmtPct(v || 0)}</span>`; }
+      return (v === '' || v == null) ? '—' : String(v);
+    }
+    function renderTable() {
+      const cols = PROC.tableColumns; const th = document.querySelector('#tbl thead'), tb = document.querySelector('#tbl tbody');
+      th.innerHTML = '<tr>' + cols.map(c => `<th data-k="${c.key}">${c.label}${sortKey === c.key ? `<span class="ar">${sortDir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('') + '</tr>';
+      th.querySelectorAll('th').forEach(h => h.onclick = () => { const k = h.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = -1; } render(); });
+      let rows = [...VIEW];
+      if (sortKey) {
+        rows.sort((a, b) => {
+          let x = a[sortKey], y = b[sortKey]; if (x instanceof Date) x = +x, y = +y;
+          if (typeof x === 'string') { x = x.toLowerCase(); y = String(y).toLowerCase(); return x < y ? -sortDir : x > y ? sortDir : 0; } return ((+x || 0) - (+y || 0)) * sortDir;
+        });
+      }
+      rows = rows.slice(0, 400);
+      tb.innerHTML = rows.map((r, ri) => '<tr>' + cols.map(c => {
+        const num = ['int', 'num2', 'util', 'sr'].includes(c.fmt);
+        const val = c.fmt === 'sr' ? (ri + 1) : fmtCell(r[c.key], c.fmt);
+        return `<td class="${num ? 'num' : ''}" data-label="${c.label}">${val}</td>`;
+      }).join('') + '</tr>').join('');
+      if (VIEW.length > 400) tb.innerHTML += `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--hint);padding:14px">Showing first 400 of ${fmtN(VIEW.length)} — export for all.</td></tr>`;
+      document.getElementById('tableTitle').textContent = PROC.meta.name;
+    }
 
-/* ----- styled Excel export (ExcelJS) ----- */
-function cellVal(c,r,i){if(c.type==='sr')return i+1;if(c.type==='date')return r[c.key]||null;
-  if(c.type==='num2')return +(+r[c.key]||0).toFixed(2);if(['int','fDeployed','fBilling'].includes(c.type))return Math.round(+r[c.key]||0);return r[c.key]??'';}
-async function styledExcel(proc,view,fileName){
-  const wb=new ExcelJS.Workbook();wb.creator='Vision Infra Report Analyzer';
-  const ws=wb.addWorksheet(proc.sheetName||'Report',{views:[{state:'frozen',ySplit:1}]});
-  const cols=proc.columns;
-  const thin={style:'thin',color:{argb:'FFBFC8D4'}};const bd={top:thin,left:thin,bottom:thin,right:thin};
-  ws.addRow(cols.map(c=>c.label));
-  view.forEach((r,i)=>ws.addRow(cols.map(c=>cellVal(c,r,i))));
-  const hr=ws.getRow(1);hr.height=24;
-  hr.eachCell(cell=>{cell.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};
-    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0E2A43'}};
-    cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};cell.border=bd;});
-  for(let R=2;R<=view.length+1;R++){const row=ws.getRow(R);
-    cols.forEach((c,ci)=>{const cell=row.getCell(ci+1);cell.border=bd;cell.font={size:10.5,name:'Calibri'};
-      if(c.type==='date'){cell.numFmt='dd-mmm-yyyy';cell.alignment={horizontal:'center'};}
-      else if(c.type==='num2'){cell.numFmt='#,##0.00';cell.alignment={horizontal:'right'};}
-      else if(['int','sr','fDeployed','fBilling'].includes(c.type)){cell.numFmt='#,##0';cell.alignment={horizontal:'right'};}
-      else cell.alignment={horizontal:'left'};
-      if(R%2===0)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F9FC'}};});}
-  cols.forEach((c,ci)=>{let max=String(c.label).length;
-    for(let R=2;R<=view.length+1;R++){const v=ws.getRow(R).getCell(ci+1).value;let len;
-      if(v instanceof Date)len=11;else if(typeof v==='number')len=String(v).length+(c.type==='num2'?3:0);else len=String(v==null?'':v).length;
-      if(len>max)max=len;}
-    ws.getColumn(ci+1).width=Math.min(Math.max(max+2,7),46);});
-  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:cols.length}};
-  const buf=await wb.xlsx.writeBuffer();
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-  a.download=fileName;a.click();}
-function exportXlsx(){showLoad('Building styled Excel…');
-  setTimeout(async()=>{try{await styledExcel(PROC,VIEW,PROC.exportName+'-'+new Date().toISOString().slice(0,10)+'.xlsx');
-    setMsg(`<b>Excel report generated.</b> ${fmtN(VIEW.length)} rows, fully formatted.`,'ok');}
-    catch(e){setMsg('Could not build Excel: '+(e.message||e),'err');}hideLoad();},120);}
-function exportCsv(){const cols=PROC.columns;const head=cols.map(c=>c.label);const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
-  const lines=[head.map(q).join(',')];
-  VIEW.forEach((r,i)=>lines.push(cols.map(c=>{if(c.type==='sr')return i+1;let v=r[c.key];if(v instanceof Date)v=v.toISOString().slice(0,10);if(c.type==='num2')v=(+r[c.key]||0).toFixed(2);return q(v);}).join(',')));
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));
-  a.download=PROC.exportName+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
-async function exportPdf(){showLoad('Building PDF…');
-  try{const{jsPDF}=window.jspdf;const node=document.getElementById('dashView');
-    const canvas=await html2canvas(node,{scale:2,backgroundColor:'#eef2f7',useCORS:true});
-    const pdf=new jsPDF('p','mm','a4');const pw=210,ph=297,iw=pw-16,ih=canvas.height*iw/canvas.width;
-    pdf.setFillColor(14,42,67);pdf.rect(0,0,pw,18,'F');pdf.setTextColor(255);pdf.setFontSize(13);
-    pdf.text('Vision Infra · '+PROC.meta.name,8,12);pdf.setFontSize(8);pdf.text(new Date().toLocaleString('en-IN'),pw-8,12,{align:'right'});
-    let y=22,rem=ih,sy=0;const pageH=ph-26;
-    while(rem>0){const slice=Math.min(pageH,rem);const part=document.createElement('canvas');part.width=canvas.width;part.height=slice*canvas.width/iw;
-      part.getContext('2d').drawImage(canvas,0,sy,canvas.width,part.height,0,0,canvas.width,part.height);
-      pdf.addImage(part.toDataURL('image/png'),'PNG',8,y,iw,slice);rem-=slice;sy+=part.height;if(rem>0){pdf.addPage();y=10;}}
-    pdf.save(PROC.exportName+'-'+new Date().toISOString().slice(0,10)+'.pdf');
-  }catch(e){setMsg('Could not generate PDF: '+e.message,'err');}hideLoad();}
+    /* ----- styled Excel export (ExcelJS) ----- */
+    function cellVal(c, r, i) {
+      if (c.type === 'sr') return i + 1; if (c.type === 'date') return r[c.key] || null;
+      if (c.type === 'num2') return +(+r[c.key] || 0).toFixed(2); if (['int', 'fDeployed', 'fBilling'].includes(c.type)) return Math.round(+r[c.key] || 0); return r[c.key] ?? '';
+    }
+    async function styledExcel(proc, view, fileName) {
+      const wb = new ExcelJS.Workbook(); wb.creator = 'Vision Infra Report Analyzer';
+      const ws = wb.addWorksheet(proc.sheetName || 'Report', { views: [{ state: 'frozen', ySplit: 1 }] });
+      const cols = proc.columns;
+      const thin = { style: 'thin', color: { argb: 'FFBFC8D4' } }; const bd = { top: thin, left: thin, bottom: thin, right: thin };
+      ws.addRow(cols.map(c => c.label));
+      view.forEach((r, i) => ws.addRow(cols.map(c => cellVal(c, r, i))));
+      const hr = ws.getRow(1); hr.height = 24;
+      hr.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E2A43' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; cell.border = bd;
+      });
+      for (let R = 2; R <= view.length + 1; R++) {
+        const row = ws.getRow(R);
+        cols.forEach((c, ci) => {
+          const cell = row.getCell(ci + 1); cell.border = bd; cell.font = { size: 10.5, name: 'Calibri' };
+          if (c.type === 'date') { cell.numFmt = 'dd-mmm-yyyy'; cell.alignment = { horizontal: 'center' }; }
+          else if (c.type === 'num2') { cell.numFmt = '#,##0.00'; cell.alignment = { horizontal: 'right' }; }
+          else if (['int', 'sr', 'fDeployed', 'fBilling'].includes(c.type)) { cell.numFmt = '#,##0'; cell.alignment = { horizontal: 'right' }; }
+          else cell.alignment = { horizontal: 'left' };
+          if (R % 2 === 0) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF6F9FC' } };
+        });
+      }
+      cols.forEach((c, ci) => {
+        let max = String(c.label).length;
+        for (let R = 2; R <= view.length + 1; R++) {
+          const v = ws.getRow(R).getCell(ci + 1).value; let len;
+          if (v instanceof Date) len = 11; else if (typeof v === 'number') len = String(v).length + (c.type === 'num2' ? 3 : 0); else len = String(v == null ? '' : v).length;
+          if (len > max) max = len;
+        }
+        ws.getColumn(ci + 1).width = Math.min(Math.max(max + 2, 7), 46);
+      });
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+      const buf = await wb.xlsx.writeBuffer();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      a.download = fileName; a.click();
+    }
+    function exportXlsx() {
+      showLoad('Building styled Excel…');
+      setTimeout(async () => {
+        try {
+          await styledExcel(PROC, VIEW, PROC.exportName + '-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+          setMsg(`<b>Excel report generated.</b> ${fmtN(VIEW.length)} rows, fully formatted.`, 'ok');
+        }
+        catch (e) { setMsg('Could not build Excel: ' + (e.message || e), 'err'); } hideLoad();
+      }, 120);
+    }
+    function exportCsv() {
+      const cols = PROC.columns; const head = cols.map(c => c.label); const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+      const lines = [head.map(q).join(',')];
+      VIEW.forEach((r, i) => lines.push(cols.map(c => { if (c.type === 'sr') return i + 1; let v = r[c.key]; if (v instanceof Date) v = v.toISOString().slice(0, 10); if (c.type === 'num2') v = (+r[c.key] || 0).toFixed(2); return q(v); }).join(',')));
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+      a.download = PROC.exportName + '-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    }
+    async function exportPdf() {
+      showLoad('Building PDF…');
+      try {
+        const { jsPDF } = window.jspdf; const node = document.getElementById('dashView');
+        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#eef2f7', useCORS: true });
+        const pdf = new jsPDF('p', 'mm', 'a4'); const pw = 210, ph = 297, iw = pw - 16, ih = canvas.height * iw / canvas.width;
+        pdf.setFillColor(14, 42, 67); pdf.rect(0, 0, pw, 18, 'F'); pdf.setTextColor(255); pdf.setFontSize(13);
+        pdf.text('Vision Infra · ' + PROC.meta.name, 8, 12); pdf.setFontSize(8); pdf.text(new Date().toLocaleString('en-IN'), pw - 8, 12, { align: 'right' });
+        let y = 22, rem = ih, sy = 0; const pageH = ph - 26;
+        while (rem > 0) {
+          const slice = Math.min(pageH, rem); const part = document.createElement('canvas'); part.width = canvas.width; part.height = slice * canvas.width / iw;
+          part.getContext('2d').drawImage(canvas, 0, sy, canvas.width, part.height, 0, 0, canvas.width, part.height);
+          pdf.addImage(part.toDataURL('image/png'), 'PNG', 8, y, iw, slice); rem -= slice; sy += part.height; if (rem > 0) { pdf.addPage(); y = 10; }
+        }
+        pdf.save(PROC.exportName + '-' + new Date().toISOString().slice(0, 10) + '.pdf');
+      } catch (e) { setMsg('Could not generate PDF: ' + e.message, 'err'); } hideLoad();
+    }
 
-function reset(){RAW=[];VIEW=[];sortKey=null;msState={};chartObjs.forEach(c=>c&&c.destroy());chartObjs=[];setMsg('');
-  document.getElementById('dashView').style.display='none';
-  document.getElementById('uploadView').style.display=CURRENT?'block':'none';
-  document.getElementById('file').value='';
-  ['btnReset','btnCsv','btnPdf','btnXlsx'].forEach(id=>document.getElementById(id).disabled=true);}
+    function reset() {
+      RAW = []; VIEW = []; sortKey = null; msState = {}; chartObjs.forEach(c => c && c.destroy()); chartObjs = []; setMsg('');
+      document.getElementById('dashView').style.display = 'none';
+      document.getElementById('uploadView').style.display = CURRENT ? 'block' : 'none';
+      document.getElementById('file').value = '';
+      ['btnReset', 'btnCsv', 'btnPdf', 'btnXlsx'].forEach(id => document.getElementById(id).disabled = true);
+    }
 
-/* ----- footer ----- */
-function fillFooter(){document.getElementById('ftrName').textContent=COMPANY.name;document.getElementById('ftrName2').textContent=COMPANY.name;
-  document.getElementById('ftrAddr').textContent=COMPANY.address;
-  const mail=document.getElementById('ftrMail');mail.textContent=COMPANY.email;mail.href='mailto:'+COMPANY.email;
-  document.getElementById('ftrLi').href=COMPANY.linkedin;
-  document.getElementById('ftrMailIcon').href='mailto:'+COMPANY.email;
-  const web=document.getElementById('ftrWeb');if(COMPANY.website)web.href=COMPANY.website;
-  document.getElementById('ftrYear').textContent=new Date().getFullYear();}
+    /* ----- footer ----- */
+    function fillFooter() {
+      document.getElementById('ftrName').textContent = COMPANY.name; document.getElementById('ftrName2').textContent = COMPANY.name;
+      document.getElementById('ftrAddr').textContent = COMPANY.address;
+      const mail = document.getElementById('ftrMail'); mail.textContent = COMPANY.email; mail.href = 'mailto:' + COMPANY.email;
+      document.getElementById('ftrYear').textContent = new Date().getFullYear();
+    }
 
-/* ----- wire-up ----- */
-renderCards();fillFooter();
-const drop=document.getElementById('drop'),file=document.getElementById('file');
-drop.onclick=()=>file.click();file.onchange=e=>handleFile(e.target.files[0]);
-['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
-['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
-drop.addEventListener('drop',e=>handleFile(e.dataTransfer.files[0]));
-document.getElementById('changeType').onclick=changeType;
-document.getElementById('btnReset').onclick=()=>reset();
-document.getElementById('btnCsv').onclick=exportCsv;document.getElementById('btnCsv2').onclick=exportCsv;
-document.getElementById('btnPdf').onclick=exportPdf;
-document.getElementById('btnXlsx').onclick=exportXlsx;document.getElementById('btnXlsx2').onclick=exportXlsx;
-document.getElementById('toRegister').onclick=()=>swapAuth(true);
-document.getElementById('toLogin').onclick=()=>swapAuth(false);
-document.getElementById('liBtn').onclick=doLogin;document.getElementById('rgBtn').onclick=doRegister;
-document.getElementById('btnLogout').onclick=doLogout;
-document.getElementById('liPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-document.getElementById('rgPass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
-initAuth();
-</script>
+    /* ----- wire-up ----- */
+    renderCards(); fillFooter();
+    const drop = document.getElementById('drop'), file = document.getElementById('file');
+    drop.onclick = () => file.click(); file.onchange = e => handleFile(e.target.files[0]);
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+    drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+    document.getElementById('changeType').onclick = changeType;
+    document.getElementById('btnReset').onclick = () => reset();
+    document.getElementById('btnCsv').onclick = exportCsv; document.getElementById('btnCsv2').onclick = exportCsv;
+    document.getElementById('btnPdf').onclick = exportPdf;
+    document.getElementById('btnXlsx').onclick = exportXlsx; document.getElementById('btnXlsx2').onclick = exportXlsx;
+    document.getElementById('toRegister').onclick = () => swapAuth(true);
+    document.getElementById('toLogin').onclick = () => swapAuth(false);
+    document.getElementById('liBtn').onclick = doLogin; document.getElementById('rgBtn').onclick = doRegister;
+    document.getElementById('btnLogout').onclick = doLogout;
+    document.getElementById('liPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('rgPass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+    initAuth();
+  </script>
 </body>
+
 </html>
