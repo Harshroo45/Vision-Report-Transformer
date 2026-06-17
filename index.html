@@ -2583,7 +2583,7 @@
           ['Total Sites', fmtN(by('site')), 'distinct locations', '#0891b2'],
           ['Total Departments', fmtN(by('department')), 'distinct departments', '#b45309'],
           ['Total Divisions', fmtN(by('division')), 'distinct divisions', '#475569']
-          
+
         ];
       }
       /* ---------- dynamic charts (Cr, respect filters) ---------- */
@@ -2694,8 +2694,9 @@
         { key: 'party', label: 'Vendor / Party', multi: true },
         { key: 'poDate', label: 'PO Date range', type: 'daterange' },
         { key: 'grnDate', label: 'GRN Date range', type: 'daterange' },
-        { key: 'poValue', label: 'PO Value \u20b9 (min\u2013max)', type: 'range' }];
-        
+        { key: 'poValue', label: 'PO Value \u20b9 (min\u2013max)', type: 'range' }
+      ];
+
 
       /* ---------- exact-format 8-section Excel export ---------- */
       async function exportExcel(fileName) {
