@@ -2958,8 +2958,15 @@
     }
 
     /* ----- styled Excel export (ExcelJS) ----- */
+    // Excel/ExcelJS serialize Date via UTC ms. Build the cell date at UTC-midnight of the
+    // SAME local Y/M/D the dashboard shows (toLocaleDateString), so the exported day matches
+    // the dashboard exactly with no timezone -1 shift.
+    function xlDate(d) {
+      return (d instanceof Date && !isNaN(d))
+        ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)) : (d || null);
+    }
     function cellVal(c, r, i) {
-      if (c.type === 'sr') return i + 1; if (c.type === 'date') return r[c.key] || null;
+      if (c.type === 'sr') return i + 1; if (c.type === 'date') return xlDate(r[c.key]);
       if (c.type === 'num2') return +(+r[c.key] || 0).toFixed(2); if (['int', 'fDeployed', 'fBilling'].includes(c.type)) return Math.round(+r[c.key] || 0); return r[c.key] ?? '';
     }
     async function styledExcel(proc, view, fileName) {
@@ -3015,7 +3022,7 @@
     function exportCsv() {
       const cols = PROC.columns; const head = cols.map(c => c.label); const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
       const lines = [head.map(q).join(',')];
-      VIEW.forEach((r, i) => lines.push(cols.map(c => { if (c.type === 'sr') return i + 1; let v = r[c.key]; if (v instanceof Date) v = v.toISOString().slice(0, 10); if (c.type === 'num2') v = (+r[c.key] || 0).toFixed(2); return q(v); }).join(',')));
+      VIEW.forEach((r, i) => lines.push(cols.map(c => { if (c.type === 'sr') return i + 1; let v = r[c.key]; if (v instanceof Date && !isNaN(v)) v = v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0'); if (c.type === 'num2') v = (+r[c.key] || 0).toFixed(2); return q(v); }).join(',')));
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
       a.download = PROC.exportName + '-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
     }
