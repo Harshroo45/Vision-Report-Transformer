@@ -77,9 +77,8 @@ begin
   if length(coalesce(p_name,''))=0 or length(p_user_id)=0 then
     return json_build_object('ok',false,'error','Name and User ID are required.'); end if;
   -- strong password policy (also enforced client-side)
-  if length(coalesce(p_password,''))<8 or p_password !~ '[A-Z]' or p_password !~ '[a-z]'
-     or p_password !~ '[0-9]' or p_password !~ '[^A-Za-z0-9]' then
-    return json_build_object('ok',false,'error','Password needs 8+ chars with upper, lower, number and special character.'); end if;
+  if length(coalesce(p_password,''))<4 then
+    return json_build_object('ok',false,'error','Password must be at least 4 characters.'); end if;
   if exists (select 1 from public.app_users where user_id=p_user_id) then
     return json_build_object('ok',false,'error','That User ID is already taken.'); end if;
   v_first := not exists (select 1 from public.app_users);
@@ -150,8 +149,8 @@ begin
   select * into v from public.app_users where session_token=p_token;
   if v.id is null then return json_build_object('ok',false,'error','Not signed in.'); end if;
   if v.password_hash <> crypt(p_old, v.password_hash) then return json_build_object('ok',false,'error','Current password is incorrect.'); end if;
-  if length(coalesce(p_new,''))<8 or p_new !~ '[A-Z]' or p_new !~ '[a-z]' or p_new !~ '[0-9]' or p_new !~ '[^A-Za-z0-9]' then
-    return json_build_object('ok',false,'error','New password needs 8+ chars with upper, lower, number and special character.'); end if;
+  if length(coalesce(p_new,''))<4 then
+    return json_build_object('ok',false,'error','New password must be at least 4 characters.'); end if;
   update public.app_users set password_hash=crypt(p_new,gen_salt('bf')) where id=v.id;
   perform public.log_activity(v.user_id,v.name,'password_change',null);
   return json_build_object('ok',true,'message','Password updated.');
@@ -206,6 +205,22 @@ begin
     select id,report_type,file_name,file_size,row_count,uploaded_by,storage_path,status,uploaded_at
     from public.uploads where uploaded_by_id=v.user_id
       and (p_report_type is null or report_type=p_report_type) limit 200
+  ) t;
+  return json_build_object('ok',true,'rows',v_rows);
+end; $$;
+
+-- SHARED: any approved user can see ALL uploads (every department). Includes the
+-- owner id so the UI shows the Delete button only to the owner or an admin.
+create or replace function public.list_uploads(p_token uuid, p_report_type text default null)
+returns json language plpgsql security definer set search_path = public as $$
+declare v record; v_rows json;
+begin
+  select * into v from public.app_users where session_token=p_token;
+  if v.id is null or v.status<>'approved' then return json_build_object('ok',false,'error','Not signed in.'); end if;
+  select coalesce(json_agg(t order by t.uploaded_at desc),'[]') into v_rows from (
+    select id,report_type,file_name,file_size,row_count,uploaded_by,uploaded_by_id,storage_path,status,uploaded_at
+    from public.uploads
+      where (p_report_type is null or report_type=p_report_type) limit 200
   ) t;
   return json_build_object('ok',true,'rows',v_rows);
 end; $$;
@@ -327,7 +342,7 @@ returns json language plpgsql security definer set search_path = public, extensi
 declare a record;
 begin
   a := public._admin(p_token); if a.id is null then return json_build_object('ok',false,'error','Admin only.'); end if;
-  if length(coalesce(p_new_password,''))<8 then return json_build_object('ok',false,'error','Password must be 8+ characters.'); end if;
+  if length(coalesce(p_new_password,''))<4 then return json_build_object('ok',false,'error','Password must be at least 4 characters.'); end if;
   update public.app_users set password_hash=crypt(p_new_password,gen_salt('bf')), failed_attempts=0, locked_until=null where user_id=lower(trim(p_user_id));
   if not found then return json_build_object('ok',false,'error','No such user.'); end if;
   perform public.log_activity(a.user_id,a.name,'password_reset', p_user_id);
@@ -426,7 +441,7 @@ do $$ declare f text; begin
            from pg_proc p join pg_namespace n on n.oid=p.pronamespace
            where n.nspname='public' and p.proname in (
              'register_user','login_user','whoami','logout_user','change_password',
-             'add_upload','list_my_uploads','delete_upload','log_report','list_my_reports',
+             'add_upload','list_my_uploads','list_uploads','delete_upload','log_report','list_my_reports',
              'admin_list_users','admin_set_status','admin_set_role','admin_unlock_user',
              'admin_change_username','admin_reset_password','admin_delete_user',
              'admin_list_uploads','admin_list_activity','admin_kpis')

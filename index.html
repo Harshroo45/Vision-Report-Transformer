@@ -1916,8 +1916,8 @@
             <option>Admin</option><option>Operations</option><option>Management</option><option>IT</option>
           </select></div>
         <div class="auth-field"><label>Password</label><input id="rgPass" type="password" autocomplete="new-password"
-            placeholder="8+ chars, upper, lower, number, symbol" oninput="pwStrength(this.value)">
-          <div class="pwbar"><i id="pwFill"></i></div><div class="pwhint" id="pwHint">Use 8+ characters with a mix of cases, a number and a symbol.</div></div>
+            placeholder="minimum 4 characters" oninput="pwStrength(this.value)">
+          <div class="pwbar"><i id="pwFill"></i></div><div class="pwhint" id="pwHint">Use at least 4 characters.</div></div>
         <button class="auth-btn" id="rgBtn">Create account</button>
         <div class="auth-switch">Already registered? <button id="toLogin">Back to login</button></div>
       </div>
@@ -1938,7 +1938,6 @@
           <button class="btn btn-green" id="btnXlsx" disabled>⬇ Excel report</button>
           <button class="btn btn-ghost" id="btnAdmin" style="display:none" title="Admin dashboard">🛡 Admin</button>
           <button class="btn btn-ghost" id="btnProfile" title="My profile">👤</button>
-          <button class="btn btn-ghost" id="btnTheme" title="Toggle dark / light">🌙</button>
           <button class="btn btn-ghost" id="btnLogout">Logout</button>
           <div class="userchip" id="userChip"></div>
         </div>
@@ -2101,7 +2100,7 @@
         <div id="profInfo" class="prof-info"></div>
         <h6>Change Password</h6>
         <div class="auth-field"><label>Current password</label><input id="cpOld" type="password" autocomplete="current-password"></div>
-        <div class="auth-field"><label>New password</label><input id="cpNew" type="password" autocomplete="new-password" oninput="pwStrength2(this.value)" placeholder="8+ chars, upper, lower, number, symbol">
+        <div class="auth-field"><label>New password</label><input id="cpNew" type="password" autocomplete="new-password" oninput="pwStrength2(this.value)" placeholder="minimum 4 characters">
           <div class="pwbar"><i id="pwFill2"></i></div><div class="pwhint" id="pwHint2"></div></div>
         <div class="prof-msg" id="cpMsg"></div>
         <button class="auth-btn" id="cpBtn" style="margin-top:6px">Update password</button>
@@ -2149,14 +2148,7 @@
     .prof-body h6{margin:14px 0 8px;font-size:12px;color:var(--ink2,#5a6b80);text-transform:uppercase;letter-spacing:.4px}
     .prof-info{font-size:13px;line-height:2;color:var(--ink,#26384c);background:var(--sky,#f5f9ff);border-radius:11px;padding:12px 15px}
     .prof-msg{font-size:12px;margin:8px 0;min-height:16px}
-    /* ---------- DARK MODE ---------- */
     :root{--card:#fff;--line:#e6edf4;--ink:#1b2b3d;--ink2:#5a6b80;--sky:#e8f1fb}
-    body.dark{background:#0e1722;color:#d8e2ee}
-    body.dark .topbar,body.dark .ov-card,body.dark .card,body.dark .panel,body.dark section,body.dark .dash-card,body.dark .filterbar{background:#16212e !important;color:#d8e2ee}
-    body.dark{--card:#16212e;--line:#26333f;--ink:#d8e2ee;--ink2:#9fb0c2;--sky:#1c2a39}
-    body.dark .adm-table td{color:#cdd9e6}body.dark .adm-search,body.dark .adm-filters select{background:#1c2a39;color:#d8e2ee}
-    body.dark .empty,body.dark .mt,body.dark .pwhint{color:#90a2b6}
-    body.dark input,body.dark select,body.dark textarea{background:#1c2a39;color:#e3ecf5;border-color:#2c3b4c}
   </style>
 
   <script>
@@ -2226,7 +2218,7 @@
         } else if (action === 'unlock') { fn = 'admin_unlock_user'; }
         else if (action === 'role') { fn = 'admin_set_role'; args.p_role = extra; if (!confirm(`Change ${uid} role to ${extra}?`)) return; }
         else if (action === 'rename') { const nu = prompt('New User ID for ' + uid + ':'); if (!nu) return; fn = 'admin_change_username'; args.p_new_user_id = nu; }
-        else if (action === 'reset') { const np = prompt('New password (8+ chars, upper/lower/number/symbol) for ' + uid + ':'); if (!np) return; fn = 'admin_reset_password'; args.p_new_password = np; }
+        else if (action === 'reset') { const np = prompt('New password (min 4 characters) for ' + uid + ':'); if (!np) return; fn = 'admin_reset_password'; args.p_new_password = np; }
         else if (action === 'delete') { if (!confirm('Permanently DELETE user ' + uid + '? This cannot be undone.')) return; fn = 'admin_delete_user'; }
         const d = await rpc(fn, args);
         if (!d.ok) { alert(d.error || 'Action failed.'); return; }
@@ -2280,7 +2272,7 @@
     }
     async function doChangePassword() {
       const oldp = document.getElementById('cpOld').value, np = document.getElementById('cpNew').value, msg = document.getElementById('cpMsg');
-      if (!pwValid(np)) { msg.style.color = '#d8504c'; msg.textContent = 'New password needs 8+ chars with upper, lower, number and special character.'; return; }
+      if (!pwValid(np)) { msg.style.color = '#d8504c'; msg.textContent = 'New password must be at least 4 characters.'; return; }
       try {
         const d = await rpc('change_password', { p_token: USER.token, p_old: oldp, p_new: np });
         if (!d.ok) { msg.style.color = '#d8504c'; msg.textContent = d.error || 'Failed.'; return; }
@@ -2288,9 +2280,7 @@
         document.getElementById('cpOld').value = ''; document.getElementById('cpNew').value = '';
       } catch (e) { msg.style.color = '#d8504c'; msg.textContent = 'Failed: ' + (e.message || e); }
     }
-    /* ----- dark / light theme ----- */
-    function applyTheme(t) { document.body.classList.toggle('dark', t === 'dark'); const b = document.getElementById('btnTheme'); if (b) b.textContent = t === 'dark' ? '☀️' : '🌙'; try { localStorage.setItem('vi_theme', t); } catch (e) { } }
-    function toggleTheme() { applyTheme(document.body.classList.contains('dark') ? 'light' : 'dark'); }
+    /* ----- dark / light theme removed ----- */
 
 
     const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2348,8 +2338,8 @@
       document.getElementById('authTitle').textContent = toReg ? 'Create Account' : 'Manager Login';
       document.getElementById('authSub').textContent = toReg ? 'Register a new manager account' : 'Sign in to access the Report Analyzer'; authMsg('');
     }
-    function pwScore(p) { let s = 0; if (!p) return 0; if (p.length >= 8) s++; if (/[A-Z]/.test(p)) s++; if (/[a-z]/.test(p)) s++; if (/[0-9]/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++; return s; }
-    function pwValid(p) { return p && p.length >= 8 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p); }
+    function pwScore(p) { let s = 0; if (!p) return 0; if (p.length >= 4) s++; if (p.length >= 8) s++; if (/[A-Z]/.test(p)) s++; if (/[0-9]/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++; return s; }
+    function pwValid(p) { return !!p && p.length >= 4; }
     function pwStrength(p) {
       const s = pwScore(p), fill = document.getElementById('pwFill'), hint = document.getElementById('pwHint'); if (!fill) return;
       const pct = [0, 20, 40, 60, 80, 100][s], col = ['#d8504c', '#d8504c', '#e6a23c', '#e6a23c', '#3d8ad0', '#1d9e75'][s];
@@ -2362,7 +2352,7 @@
       const name = document.getElementById('rgName').value.trim(), uid = document.getElementById('rgUser').value.trim(),
         pass = document.getElementById('rgPass').value, dept = document.getElementById('rgDept').value;
       if (!name || !uid) { authMsg('Enter your name and User ID.', 'err'); return; }
-      if (!pwValid(pass)) { authMsg('Password needs 8+ chars with an uppercase, lowercase, number and special character.', 'err'); return; }
+      if (!pwValid(pass)) { authMsg('Password must be at least 4 characters.', 'err'); return; }
       const b = document.getElementById('rgBtn'); b.disabled = true; b.textContent = 'Creating…';
       try {
         const { data, error } = await SB.rpc('register_user', { p_name: name, p_user_id: uid, p_password: pass, p_dept: dept || null }); if (error) throw error;
@@ -2422,11 +2412,11 @@
       const wrap = document.getElementById('recentWrap'), list = document.getElementById('recentList');
       if (!SB || !USER) { wrap.style.display = 'none'; return; } wrap.style.display = 'block'; list.innerHTML = '<div class="empty">Loading…</div>';
       try {
-        // Owner-scoped: server returns ONLY this user's uploads (direct table reads are denied by RLS).
-        const { data, error } = await SB.rpc('list_my_uploads', { p_token: USER.token, p_report_type: reportType });
+        // Shared: every approved user can see all uploads (any department). Delete stays owner/admin only.
+        const { data, error } = await SB.rpc('list_uploads', { p_token: USER.token, p_report_type: reportType });
         if (error) throw error;
         if (!data || !data.ok) { list.innerHTML = '<div class="empty">Could not load history.</div>'; return; }
-        const rows = (data.rows || []).slice(0, 10);
+        const rows = (data.rows || []).slice(0, 20);
         if (!rows.length) { list.innerHTML = '<div class="empty">No uploads yet for this report.</div>'; return; }
         RECENT = {}; rows.forEach(u => RECENT[u.id] = u);
         list.innerHTML = rows.map(u => {
@@ -2435,12 +2425,14 @@
           const sz = u.file_size ? (u.file_size > 1048576 ? (u.file_size / 1048576).toFixed(1) + ' MB' : Math.round(u.file_size / 1024) + ' KB') : '';
           const stored = !!u.storage_path;
           const dis = stored ? '' : 'disabled title="File not stored (too large) — metadata only"';
+          const isOwner = u.uploaded_by_id && USER.user_id && u.uploaded_by_id === USER.user_id;
+          const canDelete = isOwner || USER.role === 'admin';
           const view = `<button class="rbtn view" ${dis} onclick="viewUpload('${u.id}')">▣ View</button>`;
           const dl = `<button class="rbtn dl" ${dis} onclick="downloadUpload('${u.id}')">⬇ Download</button>`;
-          const del = `<button class="del" title="Delete" onclick="deleteUpload('${u.id}','${reportType}')">🗑</button>`;
+          const del = canDelete ? `<button class="del" title="Delete" onclick="deleteUpload('${u.id}','${reportType}')">🗑</button>` : '';
           return `<div class="row"><div class="fi">${ext}</div>
         <div class="meta"><div class="fn plain">${u.file_name}</div>
-          <div class="mt">${u.uploaded_by || '—'} · ${when}${u.row_count ? (' · ' + fmtN(u.row_count) + ' rows') : ''}${sz ? (' · ' + sz) : ''} · <b style="color:#0f5e45">you</b></div></div>
+          <div class="mt">${u.uploaded_by || '—'} · ${when}${u.row_count ? (' · ' + fmtN(u.row_count) + ' rows') : ''}${sz ? (' · ' + sz) : ''}${isOwner ? ' · <b style="color:#0f5e45">you</b>' : ''}</div></div>
         <div class="ract">${view}${dl}${del}</div></div>`;
         }).join('');
       } catch (e) { list.innerHTML = '<div class="empty">Could not load history.</div>'; }
@@ -3354,9 +3346,7 @@
     document.getElementById('btnProfile').onclick = openProfile;
     document.getElementById('profClose').onclick = () => document.getElementById('profileView').style.display = 'none';
     document.getElementById('cpBtn').onclick = doChangePassword;
-    document.getElementById('btnTheme').onclick = toggleTheme;
     document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.style.display = 'none'; }));
-    try { applyTheme(localStorage.getItem('vi_theme') || 'light'); } catch (e) { }
     document.getElementById('liPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
     document.getElementById('rgPass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
     initAuth();
