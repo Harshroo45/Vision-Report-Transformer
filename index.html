@@ -2048,8 +2048,8 @@
           </div>
         </div>
       </div>
-      <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2">Vision Infra Equipment Solutions
-          Ltd.</span> · PO-GIN-BILL-PAYMENT Analytics Dashboard · Designed &amp; Developed by Harshal Khadatare</div>
+      <div class="ftr-bottom">© <span id="ftrYear"></span> <span id="ftrName2"></span> · Report Analyzer · Designed &amp; Developed by 
+      </div>
     </footer>
   </div><!-- /appRoot -->
 
@@ -2907,72 +2907,187 @@
     })();
 
     REPORTS.stock = (function () {
-      let HEADERS = [];
+      // Master columns resolved by header NAME (robust to ordering); header row auto-detected.
+      const COLS = {
+        site: ['location name'], locCode: ['location code'], itemCode: ['item code'], desc: ['item description'],
+        acClass: ['item ac class'], itemYear: ['item year value', 'item year opening'],
+        receiptQty: ['receipt quantity'], receiptVal: ['receipt value'], issueQty: ['issue qty'], issueVal: ['issue val'],
+        closeQty: ['closing qty'], closeVal: ['closing value'], unauthQty: ['unauthorized qty'], uom: ['uom'],
+        category: ['item class'], subClass: ['item sub class'], division: ['fleet type'], department: ['fleet make']
+      };
+      const findIdx = (H, names) => { for (const n of names) { const i = H.indexOf(n); if (i >= 0) return i; } return -1; };
       function process(wb) {
-        const aoa = sheetToAoa(wb); if (!aoa.length) throw new Error('The sheet is empty.');
-        HEADERS = (aoa[0] || []).map(h => String(h || '').trim()).filter(h => h !== ''); if (!HEADERS.length) throw new Error('No header row found.');
-        const rows = []; for (let i = 1; i < aoa.length; i++) {
-          const r = aoa[i]; if (!r || r.every(c => c === '' || c == null)) continue;
-          const o = {}; HEADERS.forEach((h, c) => { let v = r[c]; if (v instanceof Date) v = ymd(v); o['c' + c] = v ?? ''; }); rows.push(o);
+        const aoa = sheetToAoa(wb, 'Master sheet'); if (!aoa.length) throw new Error('The sheet is empty.');
+        let hr = -1;
+        for (let i = 0; i < Math.min(10, aoa.length); i++) {
+          const low = (aoa[i] || []).map(x => String(x || '').trim().toLowerCase());
+          if (low.includes('item code') && low.includes('closing value')) { hr = i; break; }
         }
-        return { rows, note: `Loaded ${fmtN(rows.length)} stock rows × ${HEADERS.length} columns.` };
+        if (hr < 0) hr = 0;
+        const H = (aoa[hr] || []).map(x => String(x || '').trim().toLowerCase());
+        const idx = {}; for (const k in COLS) idx[k] = findIdx(H, COLS[k]);
+        if (idx.itemCode < 0 || idx.closeVal < 0) throw new Error('This file is not a Stock master (need "Item Code" and "Closing Value" columns).');
+        const raw = (r, k) => idx[k] >= 0 ? r[idx[k]] : '';
+        const txt = (r, k, dflt) => { const v = String(raw(r, k) ?? '').trim(); return v || (dflt || ''); };
+        const rows = [];
+        for (let i = hr + 1; i < aoa.length; i++) {
+          const r = aoa[i]; if (!r) continue;
+          const itemCode = String(raw(r, 'itemCode') ?? '').trim();
+          const desc = String(raw(r, 'desc') ?? '').trim();
+          if (!itemCode && !desc) continue;
+          rows.push({
+            itemCode, desc,
+            site: txt(r, 'site', '—'), locCode: txt(r, 'locCode'),
+            division: txt(r, 'division', '—'), department: txt(r, 'department', '—'),
+            category: txt(r, 'category', '(blank)'), acClass: txt(r, 'acClass', '(blank)'),
+            subClass: txt(r, 'subClass', '—'), uom: txt(r, 'uom'),
+            itemYear: numv(raw(r, 'itemYear')),
+            receiptQty: numv(raw(r, 'receiptQty')), receiptVal: numv(raw(r, 'receiptVal')),
+            issueQty: numv(raw(r, 'issueQty')), issueVal: numv(raw(r, 'issueVal')),
+            closeQty: numv(raw(r, 'closeQty')), closeVal: numv(raw(r, 'closeVal')),
+            unauthQty: numv(raw(r, 'unauthQty'))
+          });
+        }
+        if (!rows.length) throw new Error('No data rows found under the header.');
+        const tcv = rows.reduce((s, r) => s + r.closeVal, 0);
+        return { rows, note: `${fmtN(rows.length)} stock lines \u00b7 ${fmtN(new Set(rows.map(r => r.itemCode)).size)} item codes \u00b7 closing value ${crore(tcv)} \u00b7 search & filter below; export gives Summery01 + Summery02.` };
       }
-      function numCols(rows) { return HEADERS.map((h, c) => ({ h, c })).filter(({ c }) => rows.some(r => r['c' + c] !== '' && isFinite(numv(r['c' + c])))); }
+      const sumBy = (view, k) => view.reduce((s, r) => s + (+r[k] || 0), 0);
+      const distinct = (view, k) => new Set(view.map(r => r[k]).filter(x => x && x !== '—' && x !== '(blank)')).size;
       function kpis(view) {
-        const k = [['Stock Rows', fmtN(view.length), 'records in view', '#2f6db0'], ['Columns', String(HEADERS.length), 'fields', '#163a5c']];
-        numCols(view).slice(0, 3).forEach(({ h, c }, i) => k.push([h, fmtN(sum(view.map(r => ({ v: numv(r['c' + c]) })), 'v'), 2), 'total', ['#1d9e75', '#f59e0b', '#8a5a06'][i] || '#2f6db0'])); return k;
+        const cv = sumBy(view, 'closeVal'), itemCodes = new Set(view.map(r => r.itemCode)).size;
+        return [
+          ['Closing Stock Value', crore(cv), 'sum of closing value', '#1d9e75'],
+          ['Total Stock Quantity', fmtN(sumBy(view, 'closeQty')), 'closing qty', '#2f6db0'],
+          ['Total Item Codes', fmtN(itemCodes), 'distinct items', '#163a5c'],
+          ['Total Transactions', fmtN(view.length), 'stock lines', '#0891b2'],
+          ['Active Sites', fmtN(distinct(view, 'site')), 'locations', '#7c5cbf'],
+          ['Active Divisions', fmtN(distinct(view, 'division')), 'fleet types', '#b45309'],
+          ['Active Departments', fmtN(distinct(view, 'department')), 'fleet makes', '#475569'],
+          ['Active Categories', fmtN(distinct(view, 'category')), 'item classes', '#0a66c2'],
+          ['Opening Stock Value', crore(sumBy(view, 'itemYear')), 'item year value', '#8a5a06'],
+          ['Total Receipt Value', crore(sumBy(view, 'receiptVal')), 'inward value', '#1d9e75'],
+          ['Total Issue Value', crore(Math.abs(sumBy(view, 'issueVal'))), 'outward value', '#d8504c'],
+          ['Avg Stock Value / Item', crore(itemCodes ? cv / itemCodes : 0), 'closing \u00f7 items', '#2f6db0']
+        ];
       }
       function charts(view) {
-        if (!view.length) return [];
-        const ncs = numCols(view); if (!ncs.length) return [];
         const opts = g => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...g });
-        const num = ncs[0];
-        let cat = null;
-        HEADERS.forEach((h, c) => {
-          if (cat || c === num.c) return;
-          const vals = view.map(r => r['c' + c]); const distinct = new Set(vals).size;
-          const ratio = vals.filter(v => v !== '' && isFinite(numv(v))).length / (vals.length || 1);
-          if (ratio < 0.5 && distinct > 1 && distinct <= 40) cat = { h, c };
-        });
-        const out = [];
-        if (cat) {
-          out.push({
-            title: `${num.h} by ${cat.h}`, sub: 'top 12 categories', height: 320, render(cv) {
-              const o = {}; view.forEach(r => { const k = r['c' + cat.c] || '—'; o[k] = (o[k] || 0) + numv(r['c' + num.c]); });
-              const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 12);
-              return new Chart(cv, {
-                type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1] * 100) / 100), backgroundColor: '#2f6db0', borderRadius: 5 }] },
-                options: opts({ scales: { y: { ticks: { callback: v => fmtN(v) } }, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 10 } } } } })
-              });
+        const crAxis = { ticks: { callback: x => fmtN(x, 2) } };
+        const tipX = c => ' ' + fmtN(c.parsed.x, 2) + ' Cr', tipY = c => ' ' + fmtN(c.parsed.y, 2) + ' Cr';
+        const topBy = (key, val, n) => { const o = {}; view.forEach(r => { const k = r[key] || '—'; o[k] = (o[k] || 0) + (+r[val] || 0); }); return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n); };
+        const COL = ['#2f6db0', '#1d9e75', '#f59e0b', '#163a5c', '#8a98a4', '#d8504c', '#6f57c2', '#0a66c2', '#b45309', '#0891b2'];
+        return [
+          {
+            title: 'Top 10 Sites by Closing Stock Value', sub: '\u20b9 Cr', height: 360, render(cv) {
+              const e = topBy('site', 'closeVal', 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#2f6db0', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipX } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } }) });
             }
-          });
-        }
-        if (ncs.length >= 2) {
-          const n2 = ncs[1]; const COL = ['#2f6db0', '#1d9e75', '#f59e0b', '#163a5c', '#8a98a4', '#d8504c', '#6f57c2', '#0a66c2'];
-          out.push({
-            title: `${n2.h} share`, sub: 'by ' + (cat ? cat.h : 'row'), height: 320, render(cv) {
-              const o = {}; view.forEach(r => { const k = cat ? (r['c' + cat.c] || '—') : 'All'; o[k] = (o[k] || 0) + numv(r['c' + n2.c]); });
-              const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8);
-              return new Chart(cv, {
-                type: 'doughnut', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => Math.round(x[1] * 100) / 100), backgroundColor: e.map((_, i) => COL[i % COL.length]), borderWidth: 2, borderColor: '#fff' }] },
-                options: opts({ cutout: '56%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } })
-              });
+          },
+          {
+            title: 'Top 10 Items by Closing Stock Value', sub: 'item code \u00b7 \u20b9 Cr', height: 360, render(cv) {
+              const o = {}; view.forEach(r => { const k = r.itemCode || '—'; if (!o[k]) o[k] = { v: 0, d: r.desc }; o[k].v += (+r.closeVal || 0); });
+              const e = Object.entries(o).sort((a, b) => b[1].v - a[1].v).slice(0, 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1].v)), backgroundColor: '#1d9e75', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { title: it => { const i = it[0].dataIndex; return e[i][0] + ' — ' + (e[i][1].d || ''); }, label: tipX } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } }) });
             }
-          });
-        }
-        return out;
+          },
+          {
+            title: 'Division-wise Stock Value', sub: 'fleet type \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('division', 'closeVal', 12);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#163a5c', borderRadius: 5 }] }, options: opts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipY } } }, scales: { y: crAxis, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Category-wise Stock Value', sub: 'item class share \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('category', 'closeVal', 10);
+              return new Chart(cv, { type: 'doughnut', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: e.map((_, i) => COL[i % COL.length]), borderWidth: 2, borderColor: '#fff' }] }, options: opts({ cutout: '56%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtN(c.parsed, 2) + ' Cr' } } } }) });
+            }
+          },
+          {
+            title: 'Department-wise Stock Value', sub: 'fleet make \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('department', 'closeVal', 12);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#7c5cbf', borderRadius: 5 }] }, options: opts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipY } } }, scales: { y: crAxis, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Top 10 Consumed Items', sub: 'by issue value \u00b7 \u20b9 Cr', height: 360, render(cv) {
+              const o = {}; view.forEach(r => { const k = r.itemCode || '—'; o[k] = (o[k] || 0) + Math.abs(+r.issueVal || 0); });
+              const e = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#d8504c', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipX } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } }) });
+            }
+          }
+        ];
       }
+      const columns = [
+        { key: 'itemCode', label: 'Item Code', type: 'text' }, { key: 'desc', label: 'Item Description', type: 'text' },
+        { key: 'site', label: 'Site', type: 'text' }, { key: 'division', label: 'Division', type: 'text' },
+        { key: 'department', label: 'Department', type: 'text' }, { key: 'category', label: 'Category', type: 'text' },
+        { key: 'acClass', label: 'Item AC Class', type: 'text' }, { key: 'subClass', label: 'Material Group', type: 'text' },
+        { key: 'uom', label: 'UOM', type: 'text' }, { key: 'closeQty', label: 'Closing Qty', type: 'num2' },
+        { key: 'closeVal', label: 'Closing Value', type: 'num2' }, { key: 'receiptVal', label: 'Receipt Value', type: 'num2' },
+        { key: 'issueVal', label: 'Issue Value', type: 'num2' }, { key: 'itemYear', label: 'Opening Value', type: 'num2' }
+      ];
+      const tableColumns = columns.map(c => ({ key: c.key, label: c.label, fmt: c.type === 'num2' ? 'num2' : 'text' }));
+      const filters = [
+        { key: 'site', label: 'Site', multi: true }, { key: 'division', label: 'Division', multi: true },
+        { key: 'department', label: 'Department', multi: true }, { key: 'category', label: 'Category', multi: true },
+        { key: 'acClass', label: 'Item AC Class', multi: true }, { key: 'subClass', label: 'Material Group', multi: true },
+        { key: 'uom', label: 'UOM', multi: true }, { key: 'closeVal', label: 'Closing Value \u20b9 (min\u2013max)', type: 'range' }
+      ];
+
+      /* ---------- Excel export: Summery01 (by Site) + Summery02 (by Item Class & Item AC Class) ---------- */
+      async function exportExcel(fileName) {
+        const data = (typeof VIEW !== 'undefined' && VIEW && VIEW.length) ? VIEW : RAW;
+        const wb = new ExcelJS.Workbook(); wb.creator = 'Vision Infra Report Analyzer';
+        const HEAD = 'FF0E2A43', GREY = 'FFF3F6FB', TOTAL = 'FFD7E1F2';
+        const thin = { style: 'thin', color: { argb: 'FFBFCBDD' } }, box = b => ({ top: b, left: b, bottom: b, right: b });
+        const NUM = '#,##0.00', HEADERS = ['Row Labels', 'Sum of Item year Value', 'Sum of Receipt Value', 'Sum of Issue Val', 'Sum of Closing Value'];
+        const pivot = (view, key) => {
+          const o = {}; view.forEach(r => {
+            const k = (r[key] == null || r[key] === '') ? '(blank)' : r[key];
+            if (!o[k]) o[k] = { iy: 0, rv: 0, iv: 0, cv: 0 };
+            o[k].iy += +r.itemYear || 0; o[k].rv += +r.receiptVal || 0; o[k].iv += +r.issueVal || 0; o[k].cv += +r.closeVal || 0;
+          }); return o;
+        };
+        function writeTable(ws, startRow, entries) {
+          HEADERS.forEach((h, i) => ws.getCell(startRow, i + 1).value = h);
+          const hrow = ws.getRow(startRow); hrow.height = 22;
+          for (let c = 1; c <= 5; c++) { const x = ws.getCell(startRow, c); x.font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri', size: 11 }; x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEAD } }; x.alignment = { horizontal: c === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true }; x.border = box(thin); }
+          let r = startRow + 1; const d0 = r;
+          entries.forEach(([name, v]) => {
+            ws.getCell(r, 1).value = name; ws.getCell(r, 2).value = v.iy; ws.getCell(r, 3).value = v.rv; ws.getCell(r, 4).value = v.iv; ws.getCell(r, 5).value = v.cv;
+            for (let c = 1; c <= 5; c++) { const x = ws.getCell(r, c); x.border = box(thin); x.font = { name: 'Calibri', size: 10.5 }; if (c > 1) { x.numFmt = NUM; x.alignment = { horizontal: 'right' }; } else x.alignment = { horizontal: 'left' }; if ((r - d0) % 2 === 1) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREY } }; }
+            r++;
+          });
+          ws.getCell(r, 1).value = 'Grand Total';
+          for (let c = 2; c <= 5; c++) { const L = ws.getColumn(c).letter; ws.getCell(r, c).value = { formula: `SUM(${L}${d0}:${L}${r - 1})` }; }
+          for (let c = 1; c <= 5; c++) { const x = ws.getCell(r, c); x.font = { bold: true, name: 'Calibri', size: 10.5 }; x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL } }; x.border = box(thin); if (c > 1) { x.numFmt = NUM; x.alignment = { horizontal: 'right' }; } else x.alignment = { horizontal: 'left' }; }
+          return r;
+        }
+        const alpha = (a, b) => (a[0] === '(blank)') - (b[0] === '(blank)') || String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
+        // Summery01 — by Site, sorted by Closing Value desc
+        const ws1 = wb.addWorksheet('Summery01', { views: [{ showGridLines: false }] });
+        [40, 22, 22, 22, 22].forEach((w, i) => ws1.getColumn(i + 1).width = w);
+        writeTable(ws1, 3, Object.entries(pivot(data, 'site')).sort((a, b) => b[1].cv - a[1].cv));
+        // Summery02 — by Item Class then by Item AC Class (alphabetical)
+        const ws2 = wb.addWorksheet('Summery02', { views: [{ showGridLines: false }] });
+        [40, 22, 22, 22, 22].forEach((w, i) => ws2.getColumn(i + 1).width = w);
+        const last = writeTable(ws2, 3, Object.entries(pivot(data, 'category')).sort(alpha));
+        writeTable(ws2, last + 4, Object.entries(pivot(data, 'acClass')).sort(alpha));
+        const buf = await wb.xlsx.writeBuffer();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        a.download = fileName; a.click();
+      }
+
       return {
         meta: {
-          name: 'Stock Report', tagline: 'Inventory / stock export — generic preview (custom rules pluggable)', soon: true,
+          name: 'Stock Report', tagline: 'Inventory stock \u2014 closing value by site & category',
           icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>'
         },
-        hint: 'Upload any stock/inventory Excel. For now it previews and re-exports your data as-is — a dedicated Stock processor can be plugged in here later.',
-        sheetName: 'Stock Report', exportName: 'VisionInfra-Stock-Report',
-        process, kpis, charts,
-        get columns() { return HEADERS.map((h, c) => ({ key: 'c' + c, label: h, type: 'text' })); },
-        get tableColumns() { return HEADERS.map((h, c) => ({ key: 'c' + c, label: h, fmt: 'text' })); },
-        filters: [], searchKeys: null
+        hint: 'Upload the ERP <b>stock dump</b> (workbook with a <b>Master sheet</b>: Item Code, Closing Value, Location Name, Item Class\u2026). Search by Item Code, filter by site / division / category \u2014 KPIs &amp; charts update live in <b>\u20b9 Cr</b>. The Excel export gives <b>Summery01</b> (by site) and <b>Summery02</b> (by category &amp; AC class).',
+        sheetName: 'Stock', exportName: 'VisionInfra-Stock-Summary',
+        process, kpis, charts, columns, tableColumns, filters, searchKeys: ['itemCode', 'desc', 'site', 'division', 'department', 'category'], exportExcel
       };
     })();
 
