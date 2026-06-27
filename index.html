@@ -2140,6 +2140,108 @@
     </div>
   </div>
 
+  <!-- ════════════════ HARY · AI ASSISTANT (self-contained) ════════════════ -->
+  <button id="haryFab" type="button" aria-label="Open Hary, the AI assistant" title="Ask Hary">
+    <span class="hary-fab-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a7 7 0 0 1 7 7v1a7 7 0 0 1-7 7H9l-4 3v-3.5A7 7 0 0 1 5 10V9a7 7 0 0 1 7-7Z"/>
+        <circle cx="9.5" cy="10" r="1.1" fill="#fff" stroke="none"/><circle cx="14.5" cy="10" r="1.1" fill="#fff" stroke="none"/>
+      </svg>
+    </span>
+    <span class="hary-fab-txt">Ask&nbsp;Hary</span>
+    <i class="hary-fab-dot"></i>
+  </button>
+
+  <div id="haryPanel" class="hary-panel" role="dialog" aria-label="Hary AI assistant">
+    <div class="hary-head">
+      <div class="hary-ava">H<i class="hary-on"></i></div>
+      <div class="hary-id"><b>Hary</b><span id="haryStatus">AI Assistant · Online</span></div>
+      <button id="haryClear" class="hary-hbtn" title="Start a new chat">⟲</button>
+      <button id="haryClose" class="hary-hbtn" title="Close">✕</button>
+    </div>
+    <div class="hary-body" id="haryBody"></div>
+    <div class="hary-sugg" id="harySugg"></div>
+    <div class="hary-input">
+      <input id="haryInput" type="text" autocomplete="off" placeholder="Ask me anything about the app…">
+      <button id="harySend" title="Send" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+      </button>
+    </div>
+    <div class="hary-foot">Hary is an on-device assistant · answers stay in your browser</div>
+  </div>
+
+  <style>
+    /* ── Hary accent adapts to whatever theme tokens exist ── */
+    #haryFab, #haryPanel { --hg1: var(--steel, #4f46e5); --hg2: var(--navy2, #1d2552); --hgrad: linear-gradient(135deg, var(--hg1), var(--hg2)); font-family: var(--font, 'Inter', system-ui, sans-serif); }
+    #haryFab {
+      position: fixed; right: 22px; bottom: 22px; z-index: 200; display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 18px 12px 13px; border: none; border-radius: 40px; cursor: pointer; color: #fff;
+      background: var(--hgrad); box-shadow: 0 12px 30px rgba(30, 40, 90, .35); transition: transform .18s, box-shadow .22s, opacity .2s;
+    }
+    #haryFab:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(30, 40, 90, .45); }
+    #haryFab:active { transform: translateY(0); }
+    .hary-fab-ic { width: 30px; height: 30px; display: grid; place-items: center; background: rgba(255, 255, 255, .18); border-radius: 50%; }
+    .hary-fab-ic svg { width: 19px; height: 19px; }
+    .hary-fab-txt { font-weight: 700; font-size: 14px; letter-spacing: -.01em; }
+    .hary-fab-dot { position: absolute; top: 9px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: #2bd47d; box-shadow: 0 0 0 3px rgba(43, 212, 125, .3); animation: haryPulse 2s infinite; }
+    @keyframes haryPulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(43, 212, 125, .3); } 50% { box-shadow: 0 0 0 6px rgba(43, 212, 125, 0); } }
+    body.hary-open #haryFab { opacity: 0; pointer-events: none; }
+
+    .hary-panel {
+      position: fixed; right: 22px; bottom: 22px; z-index: 201; width: 388px; max-width: calc(100vw - 28px);
+      height: 600px; max-height: calc(100vh - 40px); background: var(--surface, #fff); border: 1px solid var(--line, #e9edf5);
+      border-radius: 22px; box-shadow: 0 30px 80px rgba(20, 26, 58, .32); display: flex; flex-direction: column; overflow: hidden;
+      opacity: 0; transform: translateY(18px) scale(.98); pointer-events: none; transition: opacity .22s ease, transform .24s cubic-bezier(.2, .8, .2, 1);
+    }
+    body.hary-open .hary-panel { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+    .hary-head { display: flex; align-items: center; gap: 11px; padding: 14px 14px 14px 16px; background: var(--hgrad); color: #fff; }
+    .hary-ava { position: relative; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, .2); display: grid; place-items: center; font-weight: 800; font-size: 17px; }
+    .hary-on { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; background: #2bd47d; border: 2px solid #fff; }
+    .hary-id { flex: 1; line-height: 1.2; }
+    .hary-id b { font-size: 15.5px; font-weight: 750; letter-spacing: -.01em; }
+    .hary-id span { display: block; font-size: 11.5px; opacity: .85; }
+    .hary-hbtn { background: rgba(255, 255, 255, .16); border: none; color: #fff; width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 14px; transition: background .15s; }
+    .hary-hbtn:hover { background: rgba(255, 255, 255, .32); }
+
+    .hary-body { flex: 1; overflow-y: auto; padding: 16px 14px 6px; background: linear-gradient(180deg, rgba(79, 70, 229, .04), transparent 120px); scroll-behavior: smooth; }
+    .hary-row { display: flex; margin-bottom: 12px; gap: 8px; align-items: flex-end; }
+    .hary-row.me { flex-direction: row-reverse; }
+    .hary-mava { width: 26px; height: 26px; border-radius: 50%; flex: none; background: var(--hgrad); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+    .hary-row.me .hary-mava { background: #e7e9f5; color: var(--muted, #5b667c); }
+    .hary-bub { max-width: 76%; padding: 10px 13px; border-radius: 15px; font-size: 13.5px; line-height: 1.5; color: var(--ink, #16202e); background: #f1f4f9; border-top-left-radius: 5px; word-wrap: break-word; }
+    .hary-row.me .hary-bub { background: var(--hgrad); color: #fff; border-top-left-radius: 15px; border-top-right-radius: 5px; }
+    .hary-bub b { font-weight: 700; }
+    .hary-bub a { color: inherit; font-weight: 700; }
+    .hary-bub ul { margin: 6px 0 2px; padding-left: 16px; }
+    .hary-bub li { margin: 2px 0; }
+    .hary-bub .hary-step { display: block; margin: 3px 0; }
+    .hary-time { font-size: 10px; color: var(--hint, #95a1b4); margin: 2px 6px 0; }
+
+    .hary-typing { display: inline-flex; gap: 4px; padding: 12px 14px; background: #f1f4f9; border-radius: 15px; border-top-left-radius: 5px; }
+    .hary-typing i { width: 7px; height: 7px; border-radius: 50%; background: #b6c0d2; animation: haryBlink 1.3s infinite both; }
+    .hary-typing i:nth-child(2) { animation-delay: .2s; } .hary-typing i:nth-child(3) { animation-delay: .4s; }
+    @keyframes haryBlink { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+
+    .hary-sugg { display: flex; flex-wrap: wrap; gap: 7px; padding: 4px 14px 10px; }
+    .hary-chip { border: 1px solid var(--line, #e1e6f0); background: var(--surface, #fff); color: var(--steel, #4f46e5); font-weight: 600; font-size: 12px; padding: 7px 12px; border-radius: 30px; cursor: pointer; transition: background .15s, border-color .15s, transform .12s; font-family: inherit; }
+    .hary-chip:hover { background: var(--sky, #eef1fe); border-color: #cdd5fb; transform: translateY(-1px); }
+
+    .hary-input { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-top: 1px solid var(--line, #e9edf5); background: var(--surface, #fff); }
+    .hary-input input { flex: 1; border: 1.5px solid var(--line, #e3e8ee); border-radius: 22px; padding: 11px 15px; font-size: 13.5px; font-family: inherit; color: var(--ink, #16202e); background: #fbfcff; }
+    .hary-input input:focus { outline: none; border-color: var(--hg1); box-shadow: 0 0 0 3px rgba(79, 70, 229, .14); background: #fff; }
+    #harySend { width: 42px; height: 42px; flex: none; border: none; border-radius: 50%; background: var(--hgrad); cursor: pointer; display: grid; place-items: center; transition: transform .15s, box-shadow .2s; box-shadow: 0 6px 14px rgba(40, 50, 110, .28); }
+    #harySend:hover { transform: scale(1.06); } #harySend svg { width: 18px; height: 18px; }
+    .hary-foot { text-align: center; font-size: 10px; color: var(--hint, #9aa6b8); padding: 0 0 8px; background: var(--surface, #fff); }
+
+    @media (max-width: 560px) {
+      .hary-panel { right: 0; bottom: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+      #haryFab { right: 16px; bottom: 16px; }
+      .hary-fab-txt { display: none; }
+      #haryFab { padding: 14px; }
+    }
+  </style>
+
   <style>
     .pwbar {
       height: 5px;
@@ -2678,7 +2780,8 @@
     }
     async function doLogout() {
       try { if (SB && USER && USER.token) await SB.rpc('logout_user', { p_token: USER.token }); } catch (e) { }
-      setSession(null); reset(); document.getElementById('selectView').style.display = 'block';
+      setSession(null); reset(); if (typeof Hary !== 'undefined') Hary.reset();
+      document.getElementById('selectView').style.display = 'block';
       document.getElementById('uploadView').style.display = 'none'; document.getElementById('dashView').style.display = 'none';
       const av = document.getElementById('adminView'); if (av) av.style.display = 'none';
       CURRENT = null; PROC = null; showAuth(); document.getElementById('liPass').value = '';
@@ -3768,6 +3871,356 @@
     document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.style.display = 'none'; }));
     document.getElementById('liPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
     document.getElementById('rgPass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+    /* ════════════════════ HARY · AI ASSISTANT ENGINE ════════════════════
+       On-device, context-aware assistant for the Report Analyzer. Uses a
+       scoring NLU (synonym expansion + phrase boosts + fuzzy tokens + session
+       memory) over a curated knowledge base — fast, private, no external API. */
+    const Hary = (function () {
+      let history = [];           // {role, text}
+      let lastIntent = null, lastReplyIdx = {}, pendingClarify = null, started = false;
+
+      const SYN = {
+        report: ['reports', 'reporting', 'analyser', 'analyzer', 'module', 'modules'],
+        pogin: ['po', 'pogin', 'po-gin', 'gin', 'grn', 'procurement', 'purchase', 'purchasing', 'bill', 'payment', 'vendor', 'supplier'],
+        stock: ['stock', 'inventory', 'closing', 'item', 'items', 'itemcode', 'warehouse', 'godown', 'material', 'spares'],
+        rental: ['rental', 'pnm', 'p&m', 'equipment', 'machine', 'machinery', 'utilisation', 'utilization', 'logsheet', 'deployment', 'hours', 'breakdown', 'idle'],
+        upload: ['upload', 'uploading', 'import', 'attach', 'drag', 'drop', 'browse', 'choose', 'file', 'excel', 'xlsx', 'xls', 'csv', 'workbook', 'sheet'],
+        generate: ['generate', 'export', 'download', 'create', 'produce', 'output', 'save'],
+        filter: ['filter', 'filters', 'filtering', 'refine', 'narrow', 'slice', 'segment'],
+        chart: ['chart', 'charts', 'graph', 'graphs', 'visual', 'visuals', 'plot', 'diagram'],
+        kpi: ['kpi', 'kpis', 'card', 'cards', 'metric', 'metrics', 'value', 'values', 'number', 'numbers', 'figure', 'total', 'count'],
+        dashboard: ['dashboard', 'dashboards', 'analytics', 'overview', 'view', 'screen', 'panel'],
+        login: ['login', 'log-in', 'signin', 'sign-in', 'access', 'enter'],
+        register: ['register', 'signup', 'sign-up', 'account', 'join', 'enroll', 'enrol'],
+        password: ['password', 'pwd', 'passcode', 'credentials'],
+        admin: ['admin', 'administrator', 'approve', 'approval', 'reject', 'manage', 'role', 'roles', 'permission'],
+        history: ['history', 'recent', 'previous', 'past', 'old', 'earlier', 'log', 'redownload', 're-download'],
+        help: ['help', 'guide', 'howto', 'tutorial', 'assist', 'support', 'teach'],
+        error: ['error', 'issue', 'problem', 'fail', 'failed', 'failing', 'wrong', 'broken', 'cannot', 'cant', "can't", 'not', 'stuck', 'trouble', 'fix'],
+        crore: ['crore', 'cr', 'lakh', 'rupee', 'rupees', 'currency', 'money', 'amount']
+      };
+      const SYNREV = (() => { const m = {}; for (const k in SYN) { m[k] = k; SYN[k].forEach(w => m[w] = k); } return m; })();
+
+      const norm = s => ' ' + String(s || '').toLowerCase().replace(/[^a-z0-9&]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+      const toks = s => norm(s).trim().split(' ').filter(Boolean);
+      const canon = t => SYNREV[t] || t;
+      function lev(a, b) { if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m || n; let p = Array.from({ length: n + 1 }, (_, i) => i); for (let i = 1; i <= m; i++) { let c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; } return p[n]; }
+
+      // ---- Knowledge base ----
+      const REPLY = (...a) => a;   // alt phrasings (anti-repetition cycles through)
+      const KB = [
+        {
+          id: 'greeting', phrases: ['hi', 'hello', 'hey', 'hii', 'helo', 'good morning', 'good afternoon', 'good evening', 'namaste', 'yo', 'hey there'],
+          tags: [], answer: () => REPLY(
+            `Hi${userName() ? ' ' + userName() : ''}! 👋 I'm **Hary**, your AI assistant for the Vision Infra Report Analyzer. I can help you upload files, generate reports, understand KPIs and charts, or troubleshoot anything. What would you like to do?`,
+            `Hello${userName() ? ' ' + userName() : ''}! 😊 Hary here. Ask me about the **P&M**, **PO-GIN** or **Stock** reports, uploading Excel, filters, KPIs — or just tell me what you're trying to get done.`)
+        },
+        {
+          id: 'identity', phrases: ['who are you', 'what are you', 'your name', 'about you', 'what is hary', 'who is hary', 'introduce yourself'],
+          tags: [], answer: () => REPLY(`I'm **Hary** — the AI assistant built into the Vision Infra Equipment Solutions Report Analyzer. Think of me as a colleague who knows this application inside-out: reports, dashboards, uploads, filters and calculations. Ask me anything!`)
+        },
+        {
+          id: 'workplace', phrases: ['where do you work', 'which company', 'who do you work for', 'your company', 'where are you from', 'your office'],
+          tags: [], answer: () => REPLY(`I work right here as the AI assistant for **Vision Infra Equipment Solutions Limited**. I'm always available to help you with reports, dashboards and data analysis. 🙂`)
+        },
+        {
+          id: 'developer', phrases: ['who developed you', 'who made you', 'who created you', 'who built you', 'your developer', 'who is harshal', 'who designed you'],
+          tags: [], answer: () => REPLY(`I was developed by **Mr. Harshal**. He built this whole Report Analyzer platform — I'm the friendly assistant he added to make your work easier.`)
+        },
+        {
+          id: 'sandeep', phrases: ['who is sandeep', 'who is mr sandeep', 'who is sandeep patil', 'about sandeep', 'tell me about sandeep', 'sandeep patil', 'sandeep'],
+          tags: [], answer: () => REPLY(`He is my manager — **Mr. Sandeep Patil**. He guides and supports **Mr. Harshal** in building the logical reports behind this platform. 🙂 You can reach him at <a href="mailto:pnm_audit@visioninfraindia.com">pnm_audit@visioninfraindia.com</a>.`)
+        },
+        {
+          id: 'dob', phrases: ['date of birth', 'when were you born', 'your birthday', 'your age', 'how old are you', 'dob'],
+          tags: [], answer: () => REPLY(`You can say I was born on **15 June 2026** 🎂 — still young, but I already know this application by heart!`)
+        },
+        {
+          id: 'father', phrases: ['who is your father', 'your father', 'your mother', 'your parents', 'your family', 'your creator language'],
+          tags: [], answer: () => REPLY(`😄 I'd say my father is the **Python programming language**, because that's where much of my intelligence comes from! And my home is right here in this browser.`)
+        },
+        {
+          id: 'mood', phrases: ['how are you', 'how do you do', 'how is it going', 'whats up', 'how are u', 'are you ok'],
+          tags: [], answer: () => REPLY(`I'm running at 100% and ready to help! ⚡ More importantly — how can I make your reporting easier today?`)
+        },
+        {
+          id: 'human', phrases: ['are you human', 'are you a robot', 'are you real', 'are you ai', 'are you a bot', 'do you sleep', 'do you eat'],
+          tags: [], answer: () => REPLY(`I'm an AI assistant 🤖 — no sleep, no chai breaks, available 24/7. But I try to be as friendly and helpful as your best colleague.`)
+        },
+        {
+          id: 'joke', phrases: ['tell me a joke', 'make me laugh', 'say something funny', 'a joke', 'funny'],
+          tags: [], answer: () => REPLY(
+            `Why did the spreadsheet go to therapy? It had too many **unresolved cells**! 😄 Now… shall we resolve some of your data instead?`,
+            `I asked a stock item how it felt. It said *"a bit depreciated."* 📉 Okay, back to work — what can I help with?`,
+            `A PO walked into a bar… and got **short-closed**. 😅 Anyway — need help with the PO-GIN report?`)
+        },
+        {
+          id: 'capabilities', phrases: ['what can you do', 'what do you do', 'how can you help', 'help me', 'your features', 'what can i ask', 'options'],
+          tags: ['help'], answer: () => REPLY(
+            `Plenty! Here's how I can help:\n• **Pick the right report** — P&M, PO-GIN or Stock\n• **Upload Excel** — step-by-step guidance\n• **Explain KPIs, charts & calculations** (in ₹ Cr)\n• **Use filters & Item-Code search**\n• **Generate / download** the Excel reports\n• **Login, registration & password** help\n• **Admin** tasks and **troubleshooting**\nTap a suggestion below or just type your question.`)
+        },
+        {
+          id: 'reports_overview', phrases: ['what reports', 'which reports', 'types of report', 'list reports', 'available reports', 'report types', 'what modules', 'kinds of report'],
+          tags: ['report'], answer: () => REPLY(`This application has **${reportCount()} report modules**:\n${reportBullets()}\nTell me your goal and I'll point you to the right one — or tap **Which report should I use?**`)
+        },
+        {
+          id: 'rental_report', phrases: ['p&m report', 'pnm report', 'equipment report', 'rental report', 'utilisation', 'utilization', 'logsheet', 'machine report', 'deployment report'],
+          tags: ['rental'], answer: () => REPLY(`**P&M Report Analyzer** turns your daily equipment logsheet into a utilisation & deployment summary. Upload the raw logsheet (equipment number, date, status, running hours) or a workbook with a **Master** sheet.\n\nYou'll get KPIs like equipment count, worked hours and average utilisation, plus working/idle/breakdown/transit days — and a clean Excel export. Want the upload steps?`)
+        },
+        {
+          id: 'pogin_report', phrases: ['po-gin', 'pogin', 'procurement report', 'purchase report', 'po report', 'grn report', 'bill payment', 'vendor report'],
+          tags: ['pogin'], answer: () => REPLY(`**PO-GIN-BILL-PAYMENT** is the procurement analytics module. Upload the ERP-generated PO-GIN workbook (with a **Master Data** sheet). Filter by division, department, status, site, vendor, date or value — every KPI and chart updates live, in **₹ Cr**.\n\nThe Excel export gives the full **8-section** weekly-review summary (open PO status, ageing, PO→GRN conversion, procurement trends, month-wise summaries). Need help uploading or reading a specific section?`)
+        },
+        {
+          id: 'stock_report', phrases: ['stock report', 'inventory report', 'closing stock', 'item code', 'stock value', 'material report', 'summery01', 'summery02', 'summary01', 'summary02'],
+          tags: ['stock'], answer: () => REPLY(`**Stock Report** analyses your ERP stock dump (workbook with a **Master sheet**: Item Code, Closing Value, Location Name, Item Class…). Search by Item Code, filter by site / division / category — KPIs and charts update live in **₹ Cr**.\n\nThe Excel export produces **Summery01** (closing value by site) and **Summery02** (by Item Class and Item AC Class), matching your reference pivots. Want the Item-Code search tips or the KPI breakdown?`)
+        },
+        {
+          id: 'recommend', phrases: ['which report should i use', 'recommend a report', 'what report do i need', 'suggest a report', 'best report for', 'right report', 'which one should i use', 'help me choose'],
+          tags: [], answer: ctx => {
+            const q = ctx.q;
+            if (matchAny(q, SYN.pogin)) return REPLY(`For purchase orders, GRNs, bills or vendor analysis, use the **PO-GIN-BILL-PAYMENT** report. Want the upload steps?`);
+            if (matchAny(q, SYN.stock)) return REPLY(`For inventory, closing stock value or item-level data, use the **Stock Report**. Shall I explain its KPIs?`);
+            if (matchAny(q, SYN.rental)) return REPLY(`For equipment utilisation, running hours or deployment, use the **P&M Report Analyzer**. Want to upload now?`);
+            pendingClarify = 'recommend';
+            return { text: `Happy to help you choose! What kind of data are you working with?`, quick: ['Procurement / POs', 'Inventory / Stock', 'Equipment / Machines'] };
+          }
+        },
+        {
+          id: 'upload_help', phrases: ['how to upload', 'upload excel', 'upload file', 'how do i upload', 'import file', 'add file', 'drag and drop', 'attach excel', 'where to upload', 'upload data'],
+          tags: ['upload'], answer: () => REPLY(`Uploading is easy:\n• **1.** From the home screen, pick your report type (P&M, PO-GIN or Stock).\n• **2.** **Drag & drop** your file onto the upload box, or click **Choose file**.\n• **3.** Supported formats: **.xlsx, .xls, .csv**.\n• **4.** Hary tip: very large legacy **.xls** files open best if you first *Save As* **.xlsx** in Excel.\nThe dashboard builds automatically once the file is read. Which report are you uploading for?`)
+        },
+        {
+          id: 'generate_report', phrases: ['generate report', 'download report', 'export excel', 'create report', 'download excel', 'export report', 'get the excel', 'save report', 'output file', 'how to generate'],
+          tags: ['generate'], answer: () => REPLY(`To generate the formatted Excel report:\n• Upload your file and open the dashboard.\n• Click **⬇ Excel report** (top bar or above the table).\n• You'll get a professionally styled workbook — for **Stock** it's *Summery01 + Summery02*; for **PO-GIN** it's the full *8-section* summary; for **P&M** a complete utilisation summary.\n• Prefer raw rows? Use **⬇ CSV**.\nThe export reflects your current **filters**, so what you see is what you get. ${ctxReportLine()}`)
+        },
+        {
+          id: 'filters_help', phrases: ['how do filters work', 'use filters', 'filter data', 'apply filter', 'filtering', 'how to filter', 'what filters', 'filter options', 'show filters', 'see filters', 'the filters', 'show me the filters'],
+          tags: ['filter'], answer: () => REPLY(`Filters sit just above the charts and update **everything** live — KPIs, charts, the table and the Excel export.\n• **Multi-select** filters (Site, Division, Department, Category, Status…) let you tick several values; big lists have a search box.\n• **Range** filters (e.g. value min–max) and **date-range** filters narrow the data further.\n• Use the **Search** box for free text like an Item Code, PO number or vendor.\nClear a filter to bring all rows back. Want Item-Code search tips?`)
+        },
+        {
+          id: 'charts_help', phrases: ['explain charts', 'what charts', 'graphs', 'chart help', 'how to read charts', 'visuals', 'top 10', 'chart meaning'],
+          tags: ['chart'], answer: () => REPLY(`Each dashboard has charts tuned to its data. For example, the **Stock Report** shows **Top 10 Sites** and **Top 10 Items** by closing value, plus Division / Category / Department breakdowns and Top Consumed Items — all in **₹ Cr**. Hover any bar or slice for the exact figure, and they redraw instantly when you change filters. Want me to explain a specific chart?`)
+        },
+        {
+          id: 'kpi_help', phrases: ['explain kpi', 'what are kpis', 'kpi meaning', 'kpi cards', 'dashboard values', 'how is kpi calculated', 'what does this number mean', 'metric meaning', 'kpi calculation', 'closing stock value', 'total stock value', 'stock value mean', 'average stock value'],
+          tags: ['kpi'], answer: () => REPLY(`KPI cards are the summary tiles at the top of a dashboard. They recalculate from your **filtered** data. For the **Stock Report**, for instance:\n• **Closing Stock Value** = sum of every line's Closing Value\n• **Total Stock Quantity** = sum of Closing Qty\n• **Total Item Codes** = distinct item codes\n• **Active Sites / Divisions / Categories** = distinct counts\n• **Avg Stock Value / Item** = closing value ÷ item codes\nMonetary values show in **₹ Cr** (Crores). Tell me which KPI you'd like explained. ${ctxReportLine()}`)
+        },
+        {
+          id: 'crore_explain', phrases: ['what is cr', 'what is crore', 'meaning of cr', 'rupees cr', 'convert to crore', 'why crore', 'rs cr'],
+          tags: ['crore'], answer: () => REPLY(`**₹ Cr** means **Crores** — the standard Indian unit for large amounts. 1 Crore = 1,00,00,000 (ten million). So a closing value of ₹8,00,00,000 is shown as **₹8.00 Cr**. I divide the raw rupee figure by 1,00,00,000 to keep big dashboards readable.`)
+        },
+        {
+          id: 'item_search', phrases: ['item code search', 'search item', 'find item', 'search by item', 'how to search', 'lookup item', 'find a product', 'search box'],
+          tags: ['stock'], answer: () => REPLY(`In the **Stock Report**, type an **Item Code** (or part of a description) into the **Search** box above the table. The table instantly shows every matching line — with its description, site, division, department, category, closing quantity and value. Combine it with filters to narrow things further.`)
+        },
+        {
+          id: 'dashboard_help', phrases: ['dashboard help', 'how does dashboard work', 'explain dashboard', 'about dashboard', 'understand dashboard', 'dashboard overview'],
+          tags: ['dashboard'], answer: () => REPLY(`A dashboard appears right after your file is processed. Top to bottom: a **module header**, the **KPI cards**, a **filter bar**, the **charts**, and the **data table** (sortable, searchable). Change any filter and the whole view — plus the Excel export — updates live. ${ctxReportLine()} Want help with KPIs, charts or filters?`)
+        },
+        {
+          id: 'login_help', phrases: ['how to login', 'login help', 'cannot login', 'sign in', 'unable to login', 'login problem', 'how do i log in'],
+          tags: ['login'], answer: ctx => {
+            if (matchAny(ctx.q, ['lock', 'locked', 'attempts', 'blocked'])) return byId('account_locked').answer();
+            if (matchAny(ctx.q, ['approve', 'approval', 'pending', 'reject'])) return REPLY(`If you just registered, your account stays **Pending approval** until an administrator approves it. Once approved you can log in normally. Need the admin's contact?`);
+            return REPLY(`To log in, enter your **User ID** and **password** on the login screen and click **Login**. New here? Tap **Create one** to register (an admin approves new accounts). Forgotten your password? An administrator can reset it for you.`);
+          }
+        },
+        {
+          id: 'register_help', phrases: ['how to register', 'create account', 'sign up', 'register help', 'new account', 'make an account', 'registration'],
+          tags: ['register'], answer: () => REPLY(`To create an account:\n• On the login screen tap **Create one**.\n• Enter your **name, User ID, department** (optional) and a **password** (minimum 4 characters).\n• Submit — your account is created with **Pending** status.\n• An **administrator** approves it, then you can log in.\nThe very first account ever registered automatically becomes the admin.`)
+        },
+        {
+          id: 'password_help', phrases: ['change password', 'forgot password', 'reset password', 'password help', 'new password', 'update password', 'password policy', 'password strength'],
+          tags: ['password'], answer: () => REPLY(`**Change it yourself:** open **👤 Profile** (top bar) → *Change Password* → enter your current and new password.\n**Forgot it?** Ask an **administrator** to reset it from the Admin dashboard.\n**Policy:** minimum **4 characters** — the strength bar is just guidance, not a hard rule.`)
+        },
+        {
+          id: 'account_locked', phrases: ['account locked', 'locked out', 'too many attempts', 'login locked', 'unlock account', '5 attempts', 'temporarily locked'],
+          tags: [], answer: () => REPLY(`For security, **5 failed login attempts** lock an account for **15 minutes**. You can wait it out, or an **administrator** can unlock you instantly from the Admin dashboard (Users → Unlock). Want the admin contact details?`)
+        },
+        {
+          id: 'admin_help', phrases: ['admin features', 'admin dashboard', 'admin panel', 'what can admin do', 'approve users', 'manage users', 'admin help', 'administrator'],
+          tags: ['admin'], answer: () => REPLY(`Admins get a **🛡 Admin** button in the top bar. From there they can:\n• **Approve / reject / disable** users and **change roles**\n• **Unlock** locked accounts and **reset passwords**\n• **Rename or delete** users\n• View **all uploaded files** and delete any\n• Read the **activity log** (logins, uploads, reports, resets…)\n• See KPI cards and 14-day trend charts\n${USER && USER.role === 'admin' ? "You're an admin, so the button is available to you." : 'These tools appear only for admin accounts.'}`)
+        },
+        {
+          id: 'user_mgmt', phrases: ['approve a user', 'reject user', 'disable user', 'delete user', 'change role', 'make admin', 'user management', 'manage accounts'],
+          tags: ['admin'], answer: () => REPLY(`In the **🛡 Admin → Users** tab, each user has action buttons: **Approve, Reject, Disable/Enable, Unlock, Rename, Reset password, Make/Revoke admin** and **Delete**. Newly registered users start as *Pending* and need approval before they can log in.`)
+        },
+        {
+          id: 'history_help', phrases: ['report history', 'recent uploads', 'previous reports', 're-download', 'past files', 'upload history', 'old reports', 'find my upload'],
+          tags: ['history'], answer: () => REPLY(`On a report's upload screen, **Recent uploads** lists files (shared with all managers) — click one to reopen it instantly. Generated reports are also recorded in your history, and admins can see every upload and report in the Admin dashboard. You can re-download by reopening a file and exporting again.`)
+        },
+        {
+          id: 'data_security', phrases: ['is my data safe', 'data security', 'who can see my data', 'privacy', 'data isolation', 'secure', 'is it private', 'data protection'],
+          tags: [], answer: () => REPLY(`Security is built in: passwords are **hashed**, sessions use tokens, accounts need **admin approval**, and there's a **5-attempt lockout**. Every action is written to an **audit log**. File records go through access-controlled functions, and admins have full visibility. Uploaded files are currently shared across managers by design — tell me if you'd like to know more.`)
+        },
+        {
+          id: 'troubleshoot', phrases: ['file not working', 'upload failed', 'report not generating', 'not processing', 'empty dashboard', 'no data', 'wrong numbers', 'sheet not found', 'error uploading', 'it is not working', 'something went wrong', 'blank dashboard', 'cannot process'],
+          tags: ['error'], answer: () => REPLY(`Let's fix it. Common causes:\n• **Wrong sheet** — make sure the workbook has the expected sheet (e.g. **Master sheet** for Stock, **Master Data** for PO-GIN).\n• **Headers moved** — the header row should contain the key columns (e.g. *Item Code* and *Closing Value* for Stock). A blank first row is fine; I auto-detect the header.\n• **Huge .xls** — *Save As* **.xlsx** first; it reads much faster.\n• **Empty view** — clear any active **filters** that may be hiding rows.\n• **Wrong report type** — confirm you picked the matching module.\nTell me the exact message you see and I'll pinpoint it.`)
+        },
+        {
+          id: 'contact', phrases: ['contact admin', 'contact support', 'help desk', 'who do i contact', 'support email', 'phone number', 'reach out', 'contact us', 'get support', 'talk to a person'],
+          tags: [], answer: () => REPLY(`Here are the people who can help:\n• **Mr. Sandeep Patil** — <a href="mailto:pnm_audit@visioninfraindia.com">pnm_audit@visioninfraindia.com</a> · +91 89566 67459\n• **Mr. Harshal Khadatare** — <a href="mailto:itsupport@visioninfraindia.com">itsupport@visioninfraindia.com</a> · +91 90757 68742\nThey handle approvals, password resets and technical support.`)
+        },
+        {
+          id: 'thanks', phrases: ['thank you', 'thanks', 'thx', 'thank u', 'great', 'awesome', 'nice', 'cool', 'perfect', 'well done', 'good job'],
+          tags: [], answer: () => REPLY(`You're welcome! 😊 Happy to help anytime. Anything else about the reports or dashboards?`, `Glad that helped! 🙌 I'm right here if you need anything else.`)
+        },
+        {
+          id: 'bye', phrases: ['bye', 'goodbye', 'see you', 'exit', 'close', 'that is all', 'no thanks', 'good night'],
+          tags: [], answer: () => REPLY(`Goodbye${userName() ? ', ' + userName() : ''}! 👋 Come back whenever you need a hand with your reports. Have a great day!`)
+        }
+      ];
+      const KB_BY = {}; KB.forEach(k => KB_BY[k.id] = k);
+      const byId = id => KB_BY[id];
+
+      // ---- dynamic helpers ----
+      function userName() { try { return USER && USER.name ? String(USER.name).split(' ')[0] : ''; } catch (e) { return ''; } }
+      function reportCount() { try { return Object.keys(REPORTS).length; } catch (e) { return 3; } }
+      function reportBullets() { try { return Object.values(REPORTS).map(p => `• **${p.meta.name}** — ${p.meta.tagline}`).join('\n'); } catch (e) { return '• **P&M Report Analyzer**\n• **PO-GIN-BILL-PAYMENT**\n• **Stock Report**'; } }
+      function ctxReportLine() { try { if (typeof CURRENT !== 'undefined' && CURRENT && PROC) return `You're currently in the **${PROC.meta.name}** module.`; } catch (e) { } return ''; }
+      function matchAny(q, arr) { const n = norm(q); return arr.some(w => n.includes(' ' + w + ' ') || n.includes(' ' + w)); }
+
+      // ---- scoring NLU ----
+      function score(query, intent) {
+        const n = norm(query), qt = toks(query).map(canon); let s = 0;
+        (intent.phrases || []).forEach(p => { if (n.includes(' ' + p + ' ') || n.includes(p)) s += 6 + p.split(' ').length; });
+        const wanted = new Set(intent.tags || []);
+        if (wanted.size) qt.forEach(t => { if (wanted.has(t)) s += 3; });
+        // token overlap with phrase words + fuzzy
+        const pw = new Set(); (intent.phrases || []).forEach(p => p.split(' ').forEach(w => { if (w.length > 2) pw.add(w); }));
+        qt.forEach(t => {
+          if (pw.has(t)) s += 1.5;
+          else if (t.length >= 4) { for (const w of pw) { if (Math.abs(w.length - t.length) <= 1 && lev(t, w) === 1) { s += 0.8; break; } } }
+        });
+        return s;
+      }
+      function classify(query) {
+        let best = null, bs = 0, second = 0;
+        for (const k of KB) { const sc = score(query, k); if (sc > bs) { second = bs; bs = sc; best = k; } else if (sc > second) second = sc; }
+        return { best, bs, second };
+      }
+
+      // ---- main respond ----
+      function respond(query) {
+        const q = query.trim(); if (!q) return;
+        history.push({ role: 'user', text: q });
+
+        // pending clarification (e.g., recommend flow)
+        if (pendingClarify === 'recommend') {
+          pendingClarify = null;
+          if (matchAny(q, SYN.pogin) || /procure|po|purchase/i.test(q)) return deliver(byId('pogin_report'));
+          if (matchAny(q, SYN.stock) || /invent|stock/i.test(q)) return deliver(byId('stock_report'));
+          if (matchAny(q, SYN.rental) || /equip|machine/i.test(q)) return deliver(byId('rental_report'));
+        }
+
+        // short follow-ups → expand last topic ONLY when the query can't be classified on its own
+        const { best, bs, second } = classify(q);
+        if (best && bs >= 3) {
+          if (bs - second < 1.2 && bs < 7) { /* close call but reports are distinct — answer best */ }
+          return deliver(best);
+        }
+        const lc = q.toLowerCase();
+        const followCue = lc.length <= 4 || /^(how|why|ok|okay|yes|yeah|sure|more|go on|continue|next|then|and|explain|details?|examples?|steps?|elaborate|that|this|it|\?)\b/.test(lc);
+        if (followCue && lastIntent && lastIntent !== 'fallback') { const k = byId(lastIntent); if (k) return deliver(k, true); }
+        return deliver(byId('fallback_dynamic'), false, q);
+      }
+
+      function deliver(intent, isFollow, rawQ) {
+        if (!intent) { return pushBot(fallbackText(rawQ), fallbackQuick()); }
+        let out = intent.answer({ q: rawQ || (history.length ? history[history.length - 1].text : '') });
+        let quick = null;
+        if (out && typeof out === 'object' && !Array.isArray(out)) { quick = out.quick || null; out = [out.text]; }
+        const arr = Array.isArray(out) ? out : [out];
+        // anti-repetition: cycle phrasing; if repeating same intent, prefer a different variant
+        let idx = 0;
+        if (arr.length > 1) { idx = (lastReplyIdx[intent.id] != null ? lastReplyIdx[intent.id] + 1 : 0) % arr.length; }
+        lastReplyIdx[intent.id] = idx;
+        let text = arr[idx];
+        if (isFollow && lastIntent === intent.id && arr.length === 1) text = "Sure — a bit more detail:\n" + text;
+        lastIntent = intent.id;
+        pushBot(text, quick);
+      }
+
+      function fallbackText(q) {
+        return `I'm not 100% sure I caught that${q ? '' : ''}, so I'd rather not guess. 🤔 I can help with **reports** (P&M, PO-GIN, Stock), **uploading Excel**, **KPIs & charts**, **filters**, **report generation**, **login/account** issues, or **troubleshooting**. Could you rephrase, or pick one below?`;
+      }
+      function fallbackQuick() { return ['Which report should I use?', 'Upload Excel', 'Dashboard Help', 'Contact Admin']; }
+      // register a pseudo-intent id for fallback routing
+      KB_BY['fallback_dynamic'] = { id: 'fallback', answer: ctx => ({ text: fallbackText(ctx.q), quick: fallbackQuick() }) };
+
+      // ---- rendering ----
+      const body = () => document.getElementById('haryBody');
+      function fmt(t) {
+        let h = String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        h = h.replace(/&lt;a href=&quot;([^&]+)&quot;&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1">$2</a>'); // restore intended links
+        h = h.replace(/&lt;a href="([^"]+)"&gt;([^&]+)&lt;\/a&gt;/g, '<a href="$1">$2</a>');
+        h = h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+        const lines = h.split('\n'); let out = '', inList = false;
+        lines.forEach(ln => {
+          if (/^\s*•\s+/.test(ln)) { if (!inList) { out += '<ul>'; inList = true; } out += '<li>' + ln.replace(/^\s*•\s+/, '') + '</li>'; }
+          else { if (inList) { out += '</ul>'; inList = false; } out += (out && !out.endsWith('>') ? '<br>' : '') + ln; }
+        });
+        if (inList) out += '</ul>';
+        return out;
+      }
+      function row(role, html) {
+        const r = document.createElement('div'); r.className = 'hary-row ' + (role === 'user' ? 'me' : 'bot');
+        r.innerHTML = `<div class="hary-mava">${role === 'user' ? (userName() ? userName()[0].toUpperCase() : 'U') : 'H'}</div><div class="hary-bub">${html}</div>`;
+        body().appendChild(r); scroll();
+        return r;
+      }
+      function scroll() { const b = body(); if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; }); }
+      function pushUser(t) { row('user', fmt(t)); }
+      let typingEl = null;
+      function showTyping() { hideTyping(); typingEl = document.createElement('div'); typingEl.className = 'hary-row bot'; typingEl.innerHTML = `<div class="hary-mava">H</div><div class="hary-typing"><i></i><i></i><i></i></div>`; body().appendChild(typingEl); scroll(); }
+      function hideTyping() { if (typingEl) { typingEl.remove(); typingEl = null; } }
+      function pushBot(text, quick) {
+        history.push({ role: 'bot', text });
+        showTyping();
+        const delay = Math.min(950, 280 + String(text).length * 7);
+        setTimeout(() => { hideTyping(); row('bot', fmt(text)); renderSugg(quick); }, delay);
+      }
+      function renderSugg(custom) {
+        const s = document.getElementById('harySugg'); if (!s) return;
+        const chips = custom && custom.length ? custom : ['Generate Report', 'Upload Excel', 'Dashboard Help', 'Contact Admin'];
+        s.innerHTML = chips.map(c => `<button class="hary-chip">${c}</button>`).join('');
+        s.querySelectorAll('.hary-chip').forEach(b => b.onclick = () => ask(b.textContent));
+      }
+
+      function ask(text) { pushUser(text); respond(text); }
+      function welcome() {
+        body().innerHTML = '';
+        row('bot', fmt(`Hi${userName() ? ' ' + userName() : ''}! 👋 I'm **Hary**, your AI assistant for the **Vision Infra Report Analyzer**. Ask me about reports, uploads, KPIs, charts or troubleshooting — or tap a quick option below.`));
+        renderSugg(['Which report should I use?', 'Upload Excel', 'Dashboard Help', 'Contact Admin']);
+        lastIntent = 'greeting';
+      }
+
+      // ---- open / close / wire ----
+      function open() { document.body.classList.add('hary-open'); if (!started) { welcome(); started = true; } setTimeout(() => { const i = document.getElementById('haryInput'); if (i) i.focus(); }, 250); }
+      function close() { document.body.classList.remove('hary-open'); }
+      function toggle() { document.body.classList.contains('hary-open') ? close() : open(); }
+      function clearChat() { history = []; lastIntent = null; lastReplyIdx = {}; pendingClarify = null; welcome(); }
+      function reset() {
+        history = []; lastIntent = null; lastReplyIdx = {}; pendingClarify = null; started = false; close();
+        const b = document.getElementById('haryBody'); if (b) b.innerHTML = '';
+        const s = document.getElementById('harySugg'); if (s) s.innerHTML = '';
+      }
+
+      function init() {
+        const fab = document.getElementById('haryFab'); if (!fab) return;
+        fab.onclick = open;
+        document.getElementById('haryClose').onclick = close;
+        document.getElementById('haryClear').onclick = clearChat;
+        const send = () => { const i = document.getElementById('haryInput'); const v = i.value.trim(); if (!v) return; i.value = ''; ask(v); };
+        document.getElementById('harySend').onclick = send;
+        document.getElementById('haryInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('hary-open')) close(); });
+      }
+      return { init, open, close, toggle, ask, reset };
+    })();
+
+    Hary.init();
     initAuth();
   </script>
 </body>
