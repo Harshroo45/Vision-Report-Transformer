@@ -3617,6 +3617,235 @@
       };
     })();
 
+    /* ===================== AGEING REPORT ANALYSIS ===================== */
+    REPORTS.ageing = (function () {
+      // Master columns resolved by normalised header NAME (robust to ordering).
+      const COLS = {
+        itemCode: ['itemcode'], desc: ['itemdescription'], uom: ['uom'],
+        site: ['locationname'], locCode: ['locationcode'], classType: ['itemclasstype'],
+        category: ['class1description'], division: ['class3description'], department: ['class4description'],
+        matGroup: ['class2description'], closeQty: ['closingqty'], closeVal: ['closingvalue'],
+        b0030: ['val030'], b3160: ['val3160'], b6190: ['val6190'], b91120: ['val91120'],
+        b121150: ['val121150'], b151180: ['val151180'], b180p: ['val180']
+      };
+      // ageing buckets (oldest → newest matters for classification; display left→right oldest-last)
+      const BUCKETS = [
+        { key: 'b0030', xl: 'Sum of VAL 0-30', label: '0-30' },
+        { key: 'b3160', xl: 'Sum of VAL 31-60', label: '31-60' },
+        { key: 'b6190', xl: 'Sum of VAL 61-90', label: '61-90' },
+        { key: 'b91120', xl: 'Sum of VAL 91-120', label: '91-120' },
+        { key: 'b121150', xl: 'Sum of VAL121-150', label: '121-150' },
+        { key: 'b151180', xl: 'Sum of VAL 151-180', label: '151-180' },
+        { key: 'b180p', xl: 'Sum of VAL>180', label: '>180' }
+      ];
+      const nrm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      function process(wb) {
+        const aoa = sheetToAoa(wb, 'Master'); if (!aoa.length) throw new Error('The sheet is empty.');
+        const hr = findHeader(aoa, ['itemcode', 'closingvalue', 'val180', 'val030']);
+        const H = (aoa[hr] || []).map(nrm);
+        const idx = {}; for (const k in COLS) { idx[k] = -1; for (const a of COLS[k]) { const p = H.indexOf(a); if (p >= 0) { idx[k] = p; break; } } }
+        if (idx.itemCode < 0 || (idx.b0030 < 0 && idx.b180p < 0)) throw new Error('This file is not an Ageing master (need "Item Code" and the "VAL 0-30 … VAL>180" ageing columns).');
+        const raw = (r, k) => idx[k] >= 0 ? r[idx[k]] : '';
+        const txt = (r, k, d) => { const v = String(raw(r, k) ?? '').trim(); return v || (d || ''); };
+        const rows = [];
+        for (let i = hr + 1; i < aoa.length; i++) {
+          const r = aoa[i]; if (!r) continue;
+          const itemCode = String(raw(r, 'itemCode') ?? '').trim(), desc = String(raw(r, 'desc') ?? '').trim();
+          if (!itemCode && !desc) continue;
+          const o = {
+            itemCode, desc, uom: txt(r, 'uom'),
+            site: txt(r, 'site', '(blank)'), locCode: txt(r, 'locCode'),
+            classType: txt(r, 'classType', '(blank)'), category: txt(r, 'category', '(blank)'),
+            division: txt(r, 'division', '(blank)'), department: txt(r, 'department', '(blank)'),
+            matGroup: txt(r, 'matGroup', '(blank)'),
+            closeQty: numv(raw(r, 'closeQty')), closeVal: numv(raw(r, 'closeVal')),
+            b0030: numv(raw(r, 'b0030')), b3160: numv(raw(r, 'b3160')), b6190: numv(raw(r, 'b6190')),
+            b91120: numv(raw(r, 'b91120')), b121150: numv(raw(r, 'b121150')), b151180: numv(raw(r, 'b151180')), b180p: numv(raw(r, 'b180p'))
+          };
+          o.ageTotal = BUCKETS.reduce((s, b) => s + (+o[b.key] || 0), 0);
+          // ageing classification = oldest bucket carrying value (worst-case ageing)
+          let ab = '—'; for (let j = BUCKETS.length - 1; j >= 0; j--) { if ((+o[BUCKETS[j].key] || 0) !== 0) { ab = BUCKETS[j].label; break; } }
+          o.ageBucket = ab;
+          rows.push(o);
+        }
+        if (!rows.length) throw new Error('No data rows found under the header.');
+        const tot = rows.reduce((s, r) => s + r.ageTotal, 0);
+        return { rows, note: `${fmtN(rows.length)} stock lines \u00b7 ${fmtN(new Set(rows.map(r => r.itemCode)).size)} item codes \u00b7 ageing value ${crore(tot)} \u00b7 filter & search below; export gives the <b>Master</b> + 3-pivot <b>Summery</b> sheets.` };
+      }
+      const sumBy = (v, k) => v.reduce((s, r) => s + (+r[k] || 0), 0);
+      const distinct = (v, k) => new Set(v.map(r => r[k]).filter(x => x && x !== '—' && x !== '(blank)')).size;
+      function kpis(view) {
+        const age = sumBy(view, 'ageTotal'), items = new Set(view.map(r => r.itemCode)).size;
+        const over90 = sumBy(view, 'b91120') + sumBy(view, 'b121150') + sumBy(view, 'b151180') + sumBy(view, 'b180p');
+        return [
+          ['Total Ageing Value', crore(age), 'sum of all buckets', '#1d9e75'],
+          ['Total Stock Value', crore(sumBy(view, 'closeVal')), 'closing value', '#2f6db0'],
+          ['Total Items', fmtN(items), 'distinct item codes', '#163a5c'],
+          ['Total Stock Lines', fmtN(view.length), 'master rows', '#0891b2'],
+          ['Active Sites', fmtN(distinct(view, 'site')), 'locations', '#7c5cbf'],
+          ['Active Divisions', fmtN(distinct(view, 'division')), 'class-3 groups', '#b45309'],
+          ['Active Departments', fmtN(distinct(view, 'department')), 'class-4 groups', '#475569'],
+          ['Total Categories', fmtN(distinct(view, 'category')), 'class-1 desc', '#0a66c2'],
+          ['Value > 180 Days', crore(sumBy(view, 'b180p')), 'slow / non-moving', '#d8504c'],
+          ['Value > 90 Days', crore(over90), 'ageing risk', '#e08a1e'],
+          ['Fresh (0-30 Days)', crore(sumBy(view, 'b0030')), 'recent stock', '#1d9e75'],
+          ['Total Closing Qty', fmtN(sumBy(view, 'closeQty')), 'units on hand', '#2f6db0']
+        ];
+      }
+      function charts(view) {
+        const opts = g => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...g });
+        const crAxis = { ticks: { callback: x => fmtN(x, 2) } };
+        const tipX = c => ' ' + fmtN(c.parsed.x, 2) + ' Cr', tipY = c => ' ' + fmtN(c.parsed.y, 2) + ' Cr';
+        const topBy = (key, val, n) => { const o = {}; view.forEach(r => { const k = r[key] || '(blank)'; o[k] = (o[k] || 0) + (+r[val] || 0); }); return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n); };
+        const COL = ['#2f6db0', '#1d9e75', '#f59e0b', '#163a5c', '#8a98a4', '#d8504c', '#6f57c2', '#0a66c2', '#b45309', '#0891b2'];
+        const BUCKCOL = ['#1d9e75', '#4db38a', '#9ec64f', '#e8c14d', '#e89a3d', '#df6f4a', '#d8504c'];
+        return [
+          {
+            title: 'Ageing Bucket-wise Value', sub: '\u20b9 Cr across ageing days', height: 340, render(cv) {
+              const data = BUCKETS.map(b => crN(sumBy(view, b.key)));
+              return new Chart(cv, { type: 'bar', data: { labels: BUCKETS.map(b => b.label), datasets: [{ data, backgroundColor: BUCKCOL, borderRadius: 5 }] }, options: opts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipY } } }, scales: { y: crAxis, x: { ticks: { font: { size: 10 } } } } }) });
+            }
+          },
+          {
+            title: 'Ageing Bucket Share', sub: 'value distribution', height: 340, render(cv) {
+              const data = BUCKETS.map(b => crN(sumBy(view, b.key)));
+              return new Chart(cv, { type: 'doughnut', data: { labels: BUCKETS.map(b => b.label + ' days'), datasets: [{ data, backgroundColor: BUCKCOL, borderWidth: 2, borderColor: '#fff' }] }, options: opts({ cutout: '56%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtN(c.parsed, 2) + ' Cr' } } } }) });
+            }
+          },
+          {
+            title: 'Top 10 Sites by Ageing Value', sub: '\u20b9 Cr', height: 360, render(cv) {
+              const e = topBy('site', 'ageTotal', 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#2f6db0', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipX } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Top 10 Items by Ageing Value', sub: 'item code \u00b7 \u20b9 Cr', height: 360, render(cv) {
+              const o = {}; view.forEach(r => { const k = r.itemCode || '(blank)'; if (!o[k]) o[k] = { v: 0, d: r.desc }; o[k].v += (+r.ageTotal || 0); });
+              const e = Object.entries(o).sort((a, b) => b[1].v - a[1].v).slice(0, 10);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1].v)), backgroundColor: '#1d9e75', borderRadius: 5 }] }, options: opts({ indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { title: it => { const i = it[0].dataIndex; return e[i][0] + ' — ' + (e[i][1].d || ''); }, label: tipX } } }, scales: { x: crAxis, y: { ticks: { font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Division-wise Ageing Value', sub: 'class-3 \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('division', 'ageTotal', 12);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#163a5c', borderRadius: 5 }] }, options: opts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipY } } }, scales: { y: crAxis, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Department-wise Ageing Value', sub: 'class-4 \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('department', 'ageTotal', 12);
+              return new Chart(cv, { type: 'bar', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: '#7c5cbf', borderRadius: 5 }] }, options: opts({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: tipY } } }, scales: { y: crAxis, x: { ticks: { maxRotation: 50, autoSkip: false, font: { size: 9 } } } } }) });
+            }
+          },
+          {
+            title: 'Category-wise Ageing Analysis', sub: 'class-1 share \u00b7 \u20b9 Cr', height: 330, render(cv) {
+              const e = topBy('category', 'ageTotal', 10);
+              return new Chart(cv, { type: 'doughnut', data: { labels: e.map(x => x[0]), datasets: [{ data: e.map(x => crN(x[1])), backgroundColor: e.map((_, i) => COL[i % COL.length]), borderWidth: 2, borderColor: '#fff' }] }, options: opts({ cutout: '56%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmtN(c.parsed, 2) + ' Cr' } } } }) });
+            }
+          }
+        ];
+      }
+      const columns = [
+        { key: 'itemCode', label: 'Item Code', type: 'text' }, { key: 'desc', label: 'Item Description', type: 'text' },
+        { key: 'site', label: 'Site', type: 'text' }, { key: 'division', label: 'Division', type: 'text' },
+        { key: 'department', label: 'Department', type: 'text' }, { key: 'category', label: 'Category', type: 'text' },
+        { key: 'classType', label: 'Item Class Type', type: 'text' }, { key: 'matGroup', label: 'Material Group', type: 'text' },
+        { key: 'uom', label: 'UOM', type: 'text' }, { key: 'ageBucket', label: 'Ageing Bucket', type: 'text' },
+        { key: 'closeQty', label: 'Closing Qty', type: 'num2' }, { key: 'closeVal', label: 'Closing Value', type: 'num2' },
+        { key: 'b0030', label: 'VAL 0-30', type: 'num2' }, { key: 'b3160', label: 'VAL 31-60', type: 'num2' },
+        { key: 'b6190', label: 'VAL 61-90', type: 'num2' }, { key: 'b91120', label: 'VAL 91-120', type: 'num2' },
+        { key: 'b121150', label: 'VAL 121-150', type: 'num2' }, { key: 'b151180', label: 'VAL 151-180', type: 'num2' },
+        { key: 'b180p', label: 'VAL >180', type: 'num2' }, { key: 'ageTotal', label: 'Ageing Total', type: 'num2' }
+      ];
+      const tableColumns = columns.map(c => ({ key: c.key, label: c.label, fmt: c.type === 'num2' ? 'num2' : 'text' }));
+      const filters = [
+        { key: 'site', label: 'Site', multi: true }, { key: 'division', label: 'Division', multi: true },
+        { key: 'department', label: 'Department', multi: true }, { key: 'category', label: 'Category', multi: true },
+        { key: 'classType', label: 'Item Class Type', multi: true }, { key: 'matGroup', label: 'Material Group', multi: true },
+        { key: 'uom', label: 'UOM', multi: true }, { key: 'ageBucket', label: 'Ageing Bucket', multi: true },
+        { key: 'ageTotal', label: 'Ageing Value \u20b9 (min\u2013max)', type: 'range' }
+      ];
+
+      /* ---------- Excel export: Master (detail) + Summery (3 stacked pivots) ---------- */
+      async function exportExcel(fileName) {
+        const data = (typeof VIEW !== 'undefined' && VIEW && VIEW.length) ? VIEW : RAW;
+        const wb = new ExcelJS.Workbook(); wb.creator = 'Vision Infra Report Analyzer';
+        const HEAD = 'FF0E2A43', GREY = 'FFF3F6FB', TOTAL = 'FFD7E1F2', PCT = 'FFEAF1FB';
+        const thin = { style: 'thin', color: { argb: 'FFBFCBDD' } }, box = b => ({ top: b, left: b, bottom: b, right: b });
+        const NUM = '#,##0.00';
+        const HEADERS = ['Row Labels', ...BUCKETS.map(b => b.xl), 'Total'];   // 9 columns
+        const NC = HEADERS.length;                                           // 9
+
+        // ---------- MASTER (detailed rows behind the dashboard) — Rental-style ----------
+        const wsM = wb.addWorksheet('Master', { views: [{ state: 'frozen', ySplit: 1 }] });
+        wsM.addRow(columns.map(c => c.label));
+        data.forEach(r => wsM.addRow(columns.map(c => (c.type === 'num2' ? (+r[c.key] || 0) : (r[c.key] == null ? '' : r[c.key])))));
+        const mh = wsM.getRow(1); mh.height = 24;
+        mh.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEAD } }; cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; cell.border = box(thin); });
+        for (let R = 2; R <= data.length + 1; R++) {
+          const row = wsM.getRow(R);
+          columns.forEach((c, ci) => { const cell = row.getCell(ci + 1); cell.border = box(thin); cell.font = { size: 10.5, name: 'Calibri' }; if (c.type === 'num2') { cell.numFmt = NUM; cell.alignment = { horizontal: 'right' }; } else cell.alignment = { horizontal: 'left' }; if (R % 2 === 0) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF6F9FC' } }; });
+        }
+        columns.forEach((c, ci) => {
+          let max = String(c.label).length;
+          for (let R = 2; R <= data.length + 1; R++) { const v = wsM.getRow(R).getCell(ci + 1).value; const len = typeof v === 'number' ? String(v).length + 3 : String(v == null ? '' : v).length; if (len > max) max = len; }
+          wsM.getColumn(ci + 1).width = Math.min(Math.max(max + 2, 8), 46);
+        });
+        wsM.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
+
+        // ---------- SUMMERY (three stacked pivots, matching the reference) ----------
+        const ws = wb.addWorksheet('Summery', { views: [{ showGridLines: false }] });
+        [42, 16, 16, 16, 16, 16, 16, 16, 16].forEach((w, i) => ws.getColumn(i + 1).width = w);
+        const pivot = (key) => {
+          const o = {}; data.forEach(r => { const k = (r[key] == null || r[key] === '') ? '(blank)' : r[key]; if (!o[k]) o[k] = BUCKETS.map(() => 0); BUCKETS.forEach((b, i) => o[k][i] += (+r[b.key] || 0)); }); return o;
+        };
+        const alpha = (a, b) => (a[0] === '(blank)') - (b[0] === '(blank)') || String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
+        const colLetter = c => ws.getColumn(c).letter;
+        function writeTable(startRow, entries) {
+          HEADERS.forEach((h, i) => ws.getCell(startRow, i + 1).value = h);
+          const hrow = ws.getRow(startRow); hrow.height = 22;
+          for (let c = 1; c <= NC; c++) { const x = ws.getCell(startRow, c); x.font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri', size: 11 }; x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEAD } }; x.alignment = { horizontal: c === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true }; x.border = box(thin); }
+          let r = startRow + 1; const d0 = r;
+          entries.forEach(([name, vals]) => {
+            ws.getCell(r, 1).value = name;
+            BUCKETS.forEach((b, i) => ws.getCell(r, i + 2).value = vals[i]);
+            ws.getCell(r, NC).value = { formula: `SUM(${colLetter(2)}${r}:${colLetter(NC - 1)}${r})` };
+            for (let c = 1; c <= NC; c++) { const x = ws.getCell(r, c); x.border = box(thin); x.font = { name: 'Calibri', size: 10.5 }; if (c > 1) { x.numFmt = NUM; x.alignment = { horizontal: 'right' }; } else x.alignment = { horizontal: 'left' }; if ((r - d0) % 2 === 1) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREY } }; }
+            r++;
+          });
+          const gt = r;
+          ws.getCell(gt, 1).value = 'Grand Total';
+          for (let c = 2; c < NC; c++) { const L = colLetter(c); ws.getCell(gt, c).value = { formula: `SUM(${L}${d0}:${L}${gt - 1})` }; }
+          ws.getCell(gt, NC).value = { formula: `SUM(${colLetter(2)}${gt}:${colLetter(NC - 1)}${gt})` };
+          for (let c = 1; c <= NC; c++) { const x = ws.getCell(gt, c); x.font = { bold: true, name: 'Calibri', size: 10.5 }; x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TOTAL } }; x.border = box(thin); if (c > 1) { x.numFmt = NUM; x.alignment = { horizontal: 'right' }; } else x.alignment = { horizontal: 'left' }; }
+          const pr = gt + 1;
+          ws.getCell(pr, 1).value = 'Value in %';
+          for (let c = 2; c < NC; c++) { const L = colLetter(c); ws.getCell(pr, c).value = { formula: `${L}${gt}/$${colLetter(NC)}$${gt}` }; }
+          for (let c = 1; c <= NC; c++) { const x = ws.getCell(pr, c); x.border = box(thin); x.font = { italic: true, name: 'Calibri', size: 10 }; x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PCT } }; if (c > 1 && c < NC) { x.numFmt = '0.00%'; x.alignment = { horizontal: 'right' }; } else x.alignment = { horizontal: 'left' }; }
+          return pr;
+        }
+        // Table 1: Item Class Type · Table 2: Category (Class 1) · Table 3: Site (Location Name)
+        let last = writeTable(3, Object.entries(pivot('classType')).sort(alpha));
+        last = writeTable(last + 4, Object.entries(pivot('category')).sort(alpha));
+        writeTable(last + 4, Object.entries(pivot('site')).sort(alpha));
+
+        const buf = await wb.xlsx.writeBuffer();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+        a.download = fileName; a.click();
+      }
+
+      return {
+        meta: {
+          name: 'Ageing Report Analysis', tagline: 'Inventory ageing \u2014 value by bucket, site & category',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+        },
+        hint: 'Upload the ERP <b>ageing dump</b> (workbook with a <b>Master</b> sheet: Item Code, the <b>VAL 0-30 \u2026 VAL>180</b> buckets, Location Name, Class descriptions\u2026). Filter by site / division / category / ageing bucket and search by Item Code \u2014 KPIs &amp; charts update live in <b>\u20b9 Cr</b>. The Excel export gives the <b>Master</b> detail sheet and a 3-pivot <b>Summery</b> (by Item Class Type, Category &amp; Site).',
+        sheetName: 'Ageing', exportName: 'VisionInfra-Ageing-Report',
+        process, kpis, charts, columns, tableColumns, filters, searchKeys: ['itemCode', 'desc', 'site', 'division', 'category'], exportExcel
+      };
+    })();
+
     /* ===================== APP SHELL ===================== */
     let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {};
 
