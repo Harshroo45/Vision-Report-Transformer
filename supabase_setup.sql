@@ -466,3 +466,80 @@ create policy "report files upload" on storage.objects for insert to anon, authe
   with check (bucket_id='report-files');
 
 -- Done.  (Tip: the FIRST account you register becomes the admin automatically.)
+
+-- ============================================================================
+-- ROLE RIGHTS (RBAC)  — per-user report-module access control
+--   report_access: NULL  = unconfigured (user sees ALL reports, legacy behaviour)
+--                  jsonb array = explicit list of allowed report keys, e.g. ["rental","stock"]
+--   Admins always bypass this and see every report.
+-- Re-run this block on an existing database to enable Role Rights.
+-- ============================================================================
+alter table public.app_users add column if not exists report_access jsonb;
+
+-- login_user now also returns report_access
+create or replace function public.login_user(p_user_id text, p_password text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare v record; v_token uuid;
+begin
+  p_user_id := lower(trim(p_user_id));
+  select * into v from public.app_users where user_id=p_user_id;
+  if v.id is null then return json_build_object('ok',false,'error','Invalid User ID or password.'); end if;
+  if v.locked_until is not null and v.locked_until > now() then
+    return json_build_object('ok',false,'error','Account locked due to failed attempts. Try again later or contact an administrator.'); end if;
+  if v.password_hash <> crypt(p_password, v.password_hash) then
+    update public.app_users set failed_attempts = failed_attempts+1,
+      locked_until = case when failed_attempts+1 >= 5 then now() + interval '15 minutes' else locked_until end
+      where id=v.id;
+    perform public.log_activity(v.user_id,v.name,'login_failed', 'attempt '||(v.failed_attempts+1));
+    return json_build_object('ok',false,'error','Invalid User ID or password.');
+  end if;
+  if v.status='pending'  then return json_build_object('ok',false,'error','Your account is awaiting administrator approval.'); end if;
+  if v.status='rejected' then return json_build_object('ok',false,'error','Your registration was rejected. Please contact an administrator.'); end if;
+  if v.status='disabled' then return json_build_object('ok',false,'error','Your account has been disabled. Please contact an administrator.'); end if;
+  v_token := gen_random_uuid();
+  update public.app_users set session_token=v_token, failed_attempts=0, locked_until=null, last_login=now() where id=v.id;
+  perform public.log_activity(v.user_id,v.name,'login', null);
+  return json_build_object('ok',true,'name',v.name,'user_id',v.user_id,'token',v_token,'role',v.role,'status',v.status,'dept',v.dept,'report_access',v.report_access);
+end; $$;
+
+-- whoami now also returns report_access (authoritative permission source on every session restore)
+create or replace function public.whoami(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare v record;
+begin
+  select * into v from public.app_users where session_token=p_token;
+  if v.id is null then return json_build_object('ok',false); end if;
+  if v.status <> 'approved' then return json_build_object('ok',false); end if;
+  return json_build_object('ok',true,'name',v.name,'user_id',v.user_id,'role',v.role,'status',v.status,'dept',v.dept,'report_access',v.report_access);
+end; $$;
+
+-- admin_list_users now also returns report_access (for the Role Rights UI)
+create or replace function public.admin_list_users(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare a record; r json;
+begin
+  a := public._admin(p_token); if a.id is null then return json_build_object('ok',false,'error','Admin only.'); end if;
+  select coalesce(json_agg(t order by t.created_at desc),'[]') into r from (
+    select id,name,user_id,role,status,dept,failed_attempts,locked_until,last_login,created_at,approved_by,approved_at,report_access
+    from public.app_users) t;
+  return json_build_object('ok',true,'rows',r);
+end; $$;
+
+-- admin-only: set a user's allowed report modules (pass a jsonb array of report keys; null = all)
+create or replace function public.admin_set_report_access(p_token uuid, p_user_id text, p_reports jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare a record;
+begin
+  a := public._admin(p_token); if a.id is null then return json_build_object('ok',false,'error','Admin only.'); end if;
+  if p_reports is not null and jsonb_typeof(p_reports) <> 'array' then
+    return json_build_object('ok',false,'error','report list must be a JSON array.'); end if;
+  update public.app_users set report_access = p_reports where user_id=lower(trim(p_user_id));
+  if not found then return json_build_object('ok',false,'error','No such user.'); end if;
+  perform public.log_activity(a.user_id,a.name,'role_rights', p_user_id||' -> '||coalesce(p_reports::text,'ALL'));
+  return json_build_object('ok',true);
+end; $$;
+
+grant execute on function public.login_user(text,text)               to anon, authenticated;
+grant execute on function public.whoami(uuid)                          to anon, authenticated;
+grant execute on function public.admin_list_users(uuid)                to anon, authenticated;
+grant execute on function public.admin_set_report_access(uuid,text,jsonb) to anon, authenticated;

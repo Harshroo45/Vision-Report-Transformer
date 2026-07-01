@@ -2120,6 +2120,7 @@
         <button class="adm-tab" data-tab="users">Users</button>
         <button class="adm-tab" data-tab="files">Files</button>
         <button class="adm-tab" data-tab="activity">Activity Log</button>
+        <button class="adm-tab" data-tab="rights">Role Rights</button>
       </div>
       <div class="adm-body">
         <div class="adm-pane" id="admKpi">
@@ -2166,6 +2167,7 @@
               <option>report</option>
               <option>password_change</option>
               <option>password_reset</option>
+              <option>role_rights</option>
             </select>
             <button class="btn btn-ghost" onclick="loadAdminActivity()">Apply</button>
           </div>
@@ -2173,6 +2175,31 @@
             <table class="adm-table" id="admActTable"></table>
           </div>
         </div>
+        <div class="adm-pane" id="admRights" style="display:none">
+          <div id="rightsList">
+            <input class="adm-search" id="admRightsSearch" placeholder="Search name / user ID / email / department…"
+              oninput="renderRights()">
+            <div class="adm-tablewrap">
+              <table class="adm-table" id="admRightsTable"></table>
+            </div>
+          </div>
+          <div id="rightsEditor" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ACCESS DENIED OVERLAY ===================== -->
+  <div id="denyView" class="overlay" style="display:none">
+    <div class="ov-card" style="max-width:440px">
+      <div class="ov-head" style="background:linear-gradient(135deg,#b3261e,#7a1a15)"><b>⛔ Access Denied</b>
+        <button class="ov-x" onclick="closeDeny()">✕</button></div>
+      <div style="padding:26px 24px;text-align:center">
+        <div style="font-size:44px;line-height:1;margin-bottom:12px">🔒</div>
+        <h3 style="margin:0 0 8px;color:#7a1a15">You do not have permission to access this report.</h3>
+        <p style="color:#5a6b80;font-size:13.5px;line-height:1.6;margin:0 0 18px">
+          Access to <b id="denyName">this report</b> is restricted. Please contact your administrator to request access.</p>
+        <button class="btn btn-line" onclick="closeDeny()">Back to reports</button>
       </div>
     </div>
   </div>
@@ -2974,8 +3001,9 @@
     function closeAdmin() { document.getElementById('adminView').style.display = 'none'; ADM_CHARTS.forEach(c => { try { c.destroy(); } catch (e) { } }); ADM_CHARTS = []; }
     function switchAdminTab(t) {
       document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
-      [['kpi', 'admKpi'], ['users', 'admUsers'], ['files', 'admFiles'], ['activity', 'admActivity']].forEach(([k, id]) =>
+      [['kpi', 'admKpi'], ['users', 'admUsers'], ['files', 'admFiles'], ['activity', 'admActivity'], ['rights', 'admRights']].forEach(([k, id]) =>
         document.getElementById(id).style.display = (k === t ? 'block' : 'none'));
+      if (t === 'rights') { document.getElementById('rightsEditor').style.display = 'none'; document.getElementById('rightsList').style.display = 'block'; loadAdminUsers().then(renderRights); }
     }
     async function rpc(fn, args) { const { data, error } = await SB.rpc(fn, args); if (error) throw error; return data; }
     async function loadAdminKpis() {
@@ -3035,6 +3063,71 @@
         if (!d.ok) { alert(d.error || 'Action failed.'); return; }
         loadAdminUsers(); loadAdminKpis();
       } catch (e) { alert('Action failed: ' + (e.message || e)); }
+    }
+    /* ---- Role Rights (RBAC) ---- */
+    function renderRights() {
+      const q = (document.getElementById('admRightsSearch').value || '').toLowerCase();
+      const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
+      const rows = (ADM_USERS || []).filter(u => !q || (u.name + ' ' + u.user_id + ' ' + (u.dept || '')).toLowerCase().includes(q));
+      const total = Object.keys(REPORTS).length;
+      let h = '<thead><tr><th>Name</th><th>User ID</th><th>Dept</th><th>Status</th><th>Role</th><th>Report access</th><th></th></tr></thead><tbody>';
+      h += rows.map(u => {
+        const ra = u.report_access;
+        const cnt = (u.role === 'admin') ? '<span class="rr-count all">All</span>' : (ra == null || !Array.isArray(ra) ? '<span class="rr-count all">All</span>' : `<span class="rr-count">${ra.length} / ${total}</span>`);
+        const stat = u.status === 'approved' ? 'Active' : u.status;
+        return `<tr><td>${esc(u.name)}</td><td>${esc(u.user_id)}</td><td>${esc(u.dept) || '—'}</td>
+          <td><span class="pill ${u.status}">${stat}</span></td>
+          <td><span class="pill ${u.role}">${u.role}</span></td>
+          <td>${cnt}</td>
+          <td><button class="abtn bl" onclick="openRights('${u.user_id}')">Edit rights</button></td></tr>`;
+      }).join('') || `<tr><td colspan="7" style="text-align:center;padding:20px">No users.</td></tr>`;
+      document.getElementById('admRightsTable').innerHTML = h + '</tbody>';
+    }
+    function openRights(uid) {
+      const u = (ADM_USERS || []).find(x => x.user_id === uid); if (!u) return;
+      const ra = u.report_access, isAdmin = u.role === 'admin';
+      const allowed = (ra == null || !Array.isArray(ra)) ? Object.keys(REPORTS) : ra;
+      const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
+      const boxes = Object.entries(REPORTS).map(([id, p]) => {
+        const on = isAdmin || allowed.indexOf(id) !== -1;
+        return `<label class="rr-item"><input type="checkbox" class="rr-cb" value="${id}" ${on ? 'checked' : ''} ${isAdmin ? 'disabled' : ''}>
+          <span class="rr-ic">${p.meta.icon}</span><span class="rr-name">${esc(p.meta.name)}</span></label>`;
+      }).join('');
+      const ed = document.getElementById('rightsEditor');
+      ed.innerHTML = `
+        <div class="rr-head">
+          <button class="btn btn-line rr-back" onclick="closeRights()">← Back to list</button>
+          <div><div class="rr-who">${esc(u.name)} <span>(${esc(u.user_id)})</span></div>
+            <div class="rr-sub">${isAdmin ? 'Administrator — full access to all modules' : 'Select the report modules this user can access'}</div></div>
+        </div>
+        ${isAdmin ? '<div class="rr-adminnote">🛡 Admins always have unrestricted access to every report. To limit access, first change this user’s role to <b>user</b> in the Users tab.</div>' : `
+        <div class="rr-toolbar">
+          <button class="btn btn-ghost" onclick="toggleAllRights(true)">☑ Select all</button>
+          <button class="btn btn-ghost" onclick="toggleAllRights(false)">☐ Unselect all</button>
+        </div>`}
+        <div class="rr-grid">${boxes}</div>
+        <div class="rr-actions">
+          <span class="rr-savemsg" id="rrSaveMsg"></span>
+          <button class="btn btn-primary" id="rrSaveBtn" onclick="saveRights('${esc(uid)}')" ${isAdmin ? 'disabled' : ''}>Save changes</button>
+        </div>`;
+      document.getElementById('rightsList').style.display = 'none';
+      ed.style.display = 'block';
+    }
+    function closeRights() { document.getElementById('rightsEditor').style.display = 'none'; document.getElementById('rightsList').style.display = 'block'; renderRights(); }
+    function toggleAllRights(on) { document.querySelectorAll('#rightsEditor .rr-cb').forEach(c => { if (!c.disabled) c.checked = on; }); }
+    async function saveRights(uid) {
+      const keys = [...document.querySelectorAll('#rightsEditor .rr-cb:checked')].map(c => c.value);
+      const btn = document.getElementById('rrSaveBtn'), msg = document.getElementById('rrSaveMsg');
+      btn.disabled = true; btn.textContent = 'Saving…'; msg.textContent = '';
+      try {
+        const d = await rpc('admin_set_report_access', { p_token: USER.token, p_user_id: uid, p_reports: keys });
+        if (!d.ok) { msg.textContent = d.error || 'Save failed.'; msg.className = 'rr-savemsg err'; }
+        else {
+          msg.textContent = '✓ Permissions updated successfully.'; msg.className = 'rr-savemsg ok';
+          const u = (ADM_USERS || []).find(x => x.user_id === uid); if (u) u.report_access = keys;
+        }
+      } catch (e) { msg.textContent = 'Save failed: ' + (e.message || e); msg.className = 'rr-savemsg err'; }
+      btn.disabled = false; btn.textContent = 'Save changes';
     }
     async function loadAdminFiles() { try { const d = await rpc('admin_list_uploads', { p_token: USER.token }); ADM_FILES = (d.ok && d.rows) || []; renderAdminFiles(); } catch (e) { } }
     function renderAdminFiles() {
@@ -3179,7 +3272,7 @@
       const b = document.getElementById('liBtn'); b.disabled = true; b.textContent = 'Signing in…';
       try {
         const { data, error } = await SB.rpc('login_user', { p_user_id: uid, p_password: pass }); if (error) throw error;
-        if (!data.ok) authMsg(data.error, 'err'); else { setSession({ name: data.name, user_id: data.user_id, token: data.token, role: data.role, dept: data.dept }); showApp(); }
+        if (!data.ok) authMsg(data.error, 'err'); else { setSession({ name: data.name, user_id: data.user_id, token: data.token, role: data.role, dept: data.dept, reports: data.report_access }); showApp(); }
       } catch (e) { authMsg('Could not log in: ' + (e.message || e), 'err'); } b.disabled = false; b.textContent = 'Login';
     }
     async function doLogout() {
@@ -3195,7 +3288,7 @@
       if (USER && USER.token && SB) {
         try {
           const { data } = await SB.rpc('whoami', { p_token: USER.token });
-          if (data && data.ok) { USER.name = data.name; USER.user_id = data.user_id; USER.role = data.role; USER.dept = data.dept; setSession(USER); showApp(); return; }
+          if (data && data.ok) { USER.name = data.name; USER.user_id = data.user_id; USER.role = data.role; USER.dept = data.dept; USER.reports = data.report_access; setSession(USER); showApp(); return; }
         } catch (e) { }
       }
       setSession(null); showAuth();
@@ -3266,6 +3359,7 @@
     async function viewUpload(id) {
       const u = RECENT[id]; if (!u || !u.storage_path) return;
       const proc = REPORTS[u.report_type]; if (!proc) { setMsg('Unknown report type.', 'err'); return; }
+      if (!canAccessReport(u.report_type)) { showAccessDenied(proc.meta ? proc.meta.name : ''); return; }
       showLoad('Opening "' + u.file_name + '" …');
       setTimeout(async () => {
         try {
@@ -4603,13 +4697,43 @@
     /* ===================== APP SHELL ===================== */
     let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {};
 
+    /* ===================== ROLE RIGHTS (RBAC) — client enforcement ===================== */
+    // report_access on USER: undefined/null = unconfigured (all reports); array = explicit allowed keys. Admin always sees all.
+    function allowedReportIds() {
+      const all = Object.keys(REPORTS);
+      if (!USER || USER.role === 'admin') return all;
+      const r = USER.reports;
+      if (r == null || !Array.isArray(r)) return all;   // unconfigured → all (legacy-safe)
+      return all.filter(id => r.includes(id));
+    }
+    function canAccessReport(id) {
+      if (USER && USER.role === 'admin') return true;
+      return allowedReportIds().indexOf(id) !== -1;
+    }
+    function showAccessDenied(name) {
+      const o = document.getElementById('denyView'); if (!o) return;
+      document.getElementById('denyName').textContent = name ? ('“' + name + '”') : 'this report';
+      o.style.display = 'flex';
+    }
+    function closeDeny() { const o = document.getElementById('denyView'); if (o) o.style.display = 'none'; }
+
     function renderCards() {
-      document.getElementById('reportCards').innerHTML = Object.entries(REPORTS).map(([id, p]) =>
+      const allow = allowedReportIds();
+      const entries = Object.entries(REPORTS).filter(([id]) => allow.indexOf(id) !== -1);
+      const host = document.getElementById('reportCards');
+      if (!entries.length) {
+        host.innerHTML = `<div class="no-reports"><div class="nr-ic">🔒</div><h3>No reports assigned</h3>
+          <p>Your account doesn’t have access to any report modules yet.<br>Please contact your administrator to request access.</p></div>`;
+        return;
+      }
+      host.innerHTML = entries.map(([id, p]) =>
         `<div class="rcard ${p.meta.soon ? 'soon' : ''}" data-id="${id}">${p.meta.soon ? '<span class="tag">UNDER DEVELOPMENT</span>' : ''}
    <div class="ic">${p.meta.icon}</div><h3>${p.meta.name}</h3><p>${p.meta.tagline}</p></div>`).join('');
       document.querySelectorAll('.rcard').forEach(c => c.onclick = () => selectReport(c.dataset.id));
     }
     function selectReport(id) {
+      if (!REPORTS[id]) { setMsg('Unknown report type.', 'err'); return; }
+      if (!canAccessReport(id)) { showAccessDenied(REPORTS[id] && REPORTS[id].meta ? REPORTS[id].meta.name : ''); return; }
       CURRENT = id; PROC = REPORTS[id]; msState = {};
       document.getElementById('chosenName').textContent = PROC.meta.name;
       document.getElementById('brandSub').textContent = PROC.meta.name;
@@ -5580,6 +5704,37 @@
     @media (max-width: 600px) {
       .cards { grid-template-columns: 1fr; max-width: 440px }
     }
+  </style>
+  <style>
+    /* ===== Role Rights (RBAC) UI ===== */
+    .rr-count { font-weight: 700; font-size: 12px; color: #2150aa; background: #eaf1fb; padding: 3px 10px; border-radius: 20px; }
+    .rr-count.all { color: #0a7d54; background: #e6f7ef; }
+    .rr-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .rr-back { flex: none; }
+    .rr-who { font-weight: 800; font-size: 15px; color: #163a5c; }
+    .rr-who span { font-weight: 500; color: #7a8aa0; font-size: 13px; }
+    .rr-sub { font-size: 12.5px; color: #7a8aa0; margin-top: 2px; }
+    .rr-adminnote { background: linear-gradient(135deg, #eef5ff, #f7fbff); border: 1px solid #d6e6fb; color: #274b73; border-radius: 12px; padding: 14px 16px; font-size: 13px; line-height: 1.5; }
+    .rr-toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+    .rr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .rr-item { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1.5px solid #e3ebf5; border-radius: 13px; cursor: pointer; background: #fff; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease, transform .12s ease; }
+    .rr-item:hover { border-color: #b9d2f2; box-shadow: 0 6px 16px rgba(47, 109, 176, .1); transform: translateY(-1px); }
+    .rr-item:has(.rr-cb:checked) { border-color: #4f8ff7; background: linear-gradient(135deg, #f2f8ff, #eaf3ff); box-shadow: inset 0 0 0 1px rgba(79, 143, 247, .25); }
+    .rr-item:has(.rr-cb:disabled) { opacity: .7; cursor: not-allowed; }
+    .rr-cb { width: 19px; height: 19px; accent-color: #2f6db0; flex: none; cursor: pointer; }
+    .rr-ic { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 9px; background: linear-gradient(135deg, #4f8ff7, #15307a); }
+    .rr-ic svg { width: 18px; height: 18px; stroke: #fff; fill: none; }
+    .rr-name { font-weight: 650; font-size: 13.5px; color: #1f3a56; }
+    .rr-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #eef2f7; }
+    .rr-savemsg { font-size: 13px; font-weight: 600; }
+    .rr-savemsg.ok { color: #0a7d54; }
+    .rr-savemsg.err { color: #c0392b; }
+
+    /* ===== No reports assigned ===== */
+    .no-reports { grid-column: 1 / -1; text-align: center; padding: 54px 24px; color: #5a6b80; background: linear-gradient(180deg, rgba(244, 248, 252, .7), rgba(255, 255, 255, .4)); border: 1.5px dashed #cfdcec; border-radius: 20px; }
+    .no-reports .nr-ic { font-size: 46px; margin-bottom: 12px; }
+    .no-reports h3 { margin: 0 0 6px; color: #163a5c; font-size: 18px; }
+    .no-reports p { margin: 0; font-size: 13.5px; line-height: 1.6; }
   </style>
 </body>
 
