@@ -3399,7 +3399,8 @@
       const DUMP = {
         asset: ['equipmentnumber', 'equipment', 'assetcode'], date: ['date'], party: ['partyname', 'clientname'],
         site: ['sitecode'], location: ['sitelocation', 'location'], make: ['make'], model: ['model'],
-        fleet: ['fleettype', 'department'], hrs: ['runninghrs', 'workedhours'], status: ['status']
+        fleet: ['fleettype', 'department'], hrs: ['runninghrs', 'workedhours'], status: ['status'],
+        diesel: ['dieselqty', 'dieselquantity', 'diesel', 'dieselconsumed', 'dieselconsumption', 'dieselltr', 'dieselinltr', 'hsdqty', 'hsd', 'fuelqty', 'fuelconsumed', 'fuel']
       };
       const STATUS = [['working', 'Working', '#1d9e75'], ['idle', 'Idle', '#f59e0b'], ['bdwn', 'Breakdown', '#d8504c'], ['transit', 'In transit', '#2f6db0'], ['free', 'Free', '#8a98a4']];
       const STD = 260 / 30;
@@ -3416,11 +3417,11 @@
           const key = asset + '¦' + site + '¦' + ym(d); let g = groups.get(key);
           if (!g) {
             g = {
-              asset, site, minD: d, maxD: d, worked: 0, make: '', model: '', dept: '', client: '', location: '',
+              asset, site, minD: d, maxD: d, worked: 0, diesel: 0, make: '', model: '', dept: '', client: '', location: '',
               allDates: new Set(), st: { Working: new Set(), Idle: new Set(), Breakdown: new Set(), Transit: new Set(), 'Free Asset': new Set(), Maintenance: new Set() }
             }; groups.set(key, g);
           }
-          if (d < g.minD) g.minD = d; if (d > g.maxD) g.maxD = d; g.worked += hrs;
+          if (d < g.minD) g.minD = d; if (d > g.maxD) g.maxD = d; g.worked += hrs; if (m.diesel != null) g.diesel += numv(r[m.diesel]);
           const dk = ymd(d); g.allDates.add(dk); if (g.st[status]) g.st[status].add(dk);
           if (!g.make && m.make != null && r[m.make]) g.make = String(r[m.make]).trim();
           if (!g.model && m.model != null && r[m.model]) g.model = String(r[m.model]).trim();
@@ -3434,7 +3435,7 @@
           const deployed = total - free - transit, billing = idle + working, worked = Math.round(g.worked * 100) / 100, woHour = STD * billing;
           out.push({
             asset: g.asset, make: g.make, model: g.model, yom: '', dept: g.dept || '—', site: g.site, client: g.client, location: g.location,
-            month: monthLabel(g.minD), start: g.minD, close: g.maxD, total, free, transit, deployed, bdwn, idle, working, billing, worked, woHour, utilHrs: woHour ? worked / woHour : 0
+            month: monthLabel(g.minD), start: g.minD, close: g.maxD, total, free, transit, deployed, bdwn, idle, working, billing, worked, diesel: Math.round(g.diesel * 100) / 100, woHour, utilHrs: woHour ? worked / woHour : 0
           });
         }
         out.sort((a, b) => a.month < b.month ? -1 : a.month > b.month ? 1 : a.dept < b.dept ? -1 : a.dept > b.dept ? 1 : a.asset < b.asset ? -1 : 1);
@@ -3444,6 +3445,7 @@
         const assets = new Set(view.map(x => x.asset)).size, wh = sum(view, 'worked'), wo = sum(view, 'woHour'), util = wo ? wh / wo : 0;
         return [['Equipment Count', fmtN(assets), `${fmtN(view.length)} deployments`, '#2f6db0'],
         ['Worked Hours', fmtN(wh, 2), 'total running hours', '#1d9e75'],
+        ['Diesel Qty', fmtN(sum(view, 'diesel'), 2), 'total diesel consumed', '#b45309'],
         ['Avg Utilisation', fmtPct(util), 'worked hrs ÷ available hrs', '#f59e0b'],
         ['Working Days', fmtN(sum(view, 'working')), 'days in working status', '#1d9e75'],
         ['Idle Days', fmtN(sum(view, 'idle')), 'days in idle status', '#f59e0b'],
@@ -3490,13 +3492,13 @@
         { key: 'month', label: 'Month/Year', type: 'text' }, { key: 'start', label: 'Start Date', type: 'date' }, { key: 'close', label: 'Close Date', type: 'date' },
         { key: 'total', label: 'Total Days', type: 'int' }, { key: 'free', label: 'Free Days', type: 'int' }, { key: 'transit', label: 'In Transit Days', type: 'int' },
         { key: 'deployed', label: 'Deployed Days', type: 'int' }, { key: 'bdwn', label: 'Breakdown Days', type: 'int' }, { key: 'idle', label: 'Idle Days', type: 'int' },
-        { key: 'working', label: 'Working Days', type: 'int' }, { key: 'worked', label: 'Worked Hours', type: 'num2' }];
+        { key: 'working', label: 'Working Days', type: 'int' }, { key: 'worked', label: 'Worked Hours', type: 'num2' }, { key: 'diesel', label: 'Diesel Qty', type: 'num2' }];
       // ALIGNMENT: the on-screen table shows exactly the columns of the Excel export
       const tableColumns = columns.map(c => ({
         key: c.key, label: c.label,
         fmt: c.type === 'sr' ? 'sr' : c.type === 'date' ? 'date' : c.type === 'num2' ? 'num2' : c.type === 'int' ? 'int' : 'text'
       }));
-      const filters = [{ key: 'day', label: 'Day-wise (calendar)', type: 'calendar', from: 'start', to: 'close' }, { key: 'month', label: 'Month / Year' }, { key: 'dept', label: 'Department', multi: true }, { key: 'client', label: 'Client' }];
+      const filters = [{ key: 'day', label: 'Day-wise (calendar)', type: 'calendar', from: 'start', to: 'close' }, { key: 'month', label: 'Month / Year', sort: 'month' }, { key: 'dept', label: 'Department', multi: true }, { key: 'client', label: 'Client' }];
       return {
         meta: {
           name: 'P&M Rental Report', tagline: 'Daily equipment logsheet → utilisation & deployment summary → Upload ERP dump as it is.',
@@ -4558,8 +4560,8 @@
         { key: 'lob', label: 'Division (Line of Business)', multi: true },
         { key: 'equipType', label: 'Category (Equipment Type)', multi: true },
         { key: 'customer', label: 'Customer', multi: true },
-        { key: 'monthLbl', label: 'Month', multi: true },
-        { key: 'year', label: 'Year', multi: true },
+        { key: 'monthLbl', label: 'Month', multi: true, sort: 'month' },
+        { key: 'year', label: 'Year', multi: true, sort: 'year' },
         { key: 'assetCode', label: 'Asset (Equip Code)', multi: true },
         { key: 'assetDesc', label: 'Asset Description', multi: true },
         
@@ -4568,8 +4570,9 @@
         
         
         { key: 'itemCode', label: 'Item Code', multi: true },
-        { key: 'wmLabel', label: 'Working Month', multi: true },
+        { key: 'wmLabel', label: 'Working Month', multi: true, sort: 'month' },
         
+        { key: 'day', label: 'Date-wise (calendar)', type: 'calendar', from: 'invDate', to: 'invDate' },
         { key: 'invDate', label: 'Document Date range', type: 'daterange' }
       ];
 
@@ -4695,7 +4698,7 @@
     })();
 
     /* ===================== APP SHELL ===================== */
-    let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {}, calState = {};
+    let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {}, calState = {}, tableLimit = 200;
 
     /* ===================== ROLE RIGHTS (RBAC) — client enforcement ===================== */
     // report_access on USER: undefined/null = unconfigured (all reports); array = explicit allowed keys. Admin always sees all.
@@ -4775,6 +4778,16 @@
     }
 
     /* ----- filters (single + multi-select checkbox) ----- */
+    /* Chronological ordering for Month/Year filter options (multi-year aware) + tiny debounce */
+    const MON_IDX = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11, january:0,february:1,march:2,april:3,june:5,july:6,august:7,september:8,october:9,november:10,december:11 };
+    function monthSortVal(label){ const t=String(label).toLowerCase(); const mm=t.match(/[a-z]+/); const yy=t.match(/\d{4}/); const mi=(mm&&MON_IDX[mm[0]]!=null)?MON_IDX[mm[0]]:99; const yr=yy?+yy[0]:0; return yr*100+mi; }
+    function filterOptions(f){
+      const opts=uniq(RAW,f.key);
+      if(f.sort==='month') return opts.slice().sort((a,b)=>{const ba=(a==='(blank)'),bb=(b==='(blank)'); if(ba||bb) return (ba?1:0)-(bb?1:0); return monthSortVal(a)-monthSortVal(b);});
+      if(f.sort==='year')  return opts.slice().sort((a,b)=>{const ba=(a==='(blank)'),bb=(b==='(blank)'); if(ba||bb) return (ba?1:0)-(bb?1:0); return (+a||0)-(+b||0);});
+      return opts;
+    }
+    const debounce=(fn,ms=180)=>{let t;return function(){clearTimeout(t);t=setTimeout(fn,ms);};};
     function buildFilters() {
       const host = document.getElementById('filters'); const fs = PROC.filters || [];
       calState = {};
@@ -4783,7 +4796,7 @@
           calState[f.key] = new Set();
           return `<div class="field"><label>${f.label}</label>
         <div class="cal" data-fk="${f.key}" data-from="${f.from || f.key}" data-to="${f.to || ''}">
-          <button type="button" class="cal-btn" id="calbtn-${f.key}">Select dates</button>
+          <button type="button" class="cal-btn" id="calbtn-${f.key}">📅 Select dates</button>
           <div class="cal-panel"></div>
         </div></div>`;
         }
@@ -4797,7 +4810,7 @@
         }
         if (f.multi) {
           msState[f.key] = new Set();
-          const opts = uniq(RAW, f.key);
+          const opts = filterOptions(f);
           return `<div class="field"><label>${f.label}</label>
         <div class="ms" data-fk="${f.key}">
           <button type="button" class="ms-btn" id="msbtn-${f.key}">All Categories</button>
@@ -4807,7 +4820,7 @@
             ${opts.map(o => `<label class="msrow"><input type="checkbox" value="${String(o).replace(/"/g, '&quot;')}">${o}</label>`).join('')}
           </div></div></div>`;
         }
-        return `<div class="field"><label>${f.label}</label><select data-fk="${f.key}"><option value="">All</option>${uniq(RAW, f.key).map(v => `<option>${v}</option>`).join('')}</select></div>`;
+        return `<div class="field"><label>${f.label}</label><select data-fk="${f.key}"><option value="">All</option>${filterOptions(f).map(v => `<option>${v}</option>`).join('')}</select></div>`;
       }).join('') + (PROC.searchKeys ? `<div class="field grow"><label>Search</label><input type="search" id="fSearch" placeholder="PO / GRN / Bill no, vendor, anything…"></div>` : '')
         + `<span class="pill" id="rowCount"></span>`;
       host.querySelectorAll('select[data-fk]').forEach(s => s.onchange = applyFilters);
@@ -4817,7 +4830,7 @@
         si.parentElement.querySelectorAll('.msrow').forEach(row => { row.style.display = norm(row.textContent).includes(q) ? '' : 'none'; });
       });
       host.querySelectorAll('.ms-search').forEach(si => si.onclick = e => e.stopPropagation());
-      const se = document.getElementById('fSearch'); if (se) se.oninput = applyFilters;
+      const se = document.getElementById('fSearch'); if (se) se.oninput = debounce(applyFilters, 180);
       host.querySelectorAll('.ms').forEach(ms => {
         const fk = ms.dataset.fk; const btn = ms.querySelector('.ms-btn');
         btn.onclick = e => { e.stopPropagation(); document.querySelectorAll('.ms').forEach(x => { if (x !== ms) x.classList.remove('open'); }); ms.classList.toggle('open'); };
@@ -4891,7 +4904,7 @@
     }
     function updateCalLabel(fk) {
       const n = calState[fk] ? calState[fk].size : 0;
-      const b = document.getElementById('calbtn-' + fk); if (b) b.textContent = n ? ` ${n} day${n > 1 ? 's' : ''} selected` : 'Select dates';
+      const b = document.getElementById('calbtn-' + fk); if (b) b.textContent = n ? `📅 ${n} day${n > 1 ? 's' : ''} selected` : '📅 Select dates';
     }
     function updateMsLabel(fk) {
       const f = (PROC.filters || []).find(x => x.key === fk); const n = msState[fk].size;
@@ -4900,6 +4913,7 @@
     document.addEventListener('click', () => document.querySelectorAll('.ms.open').forEach(x => x.classList.remove('open')));
 
     function applyFilters() {
+      tableLimit = 200;
       const sels = [...document.querySelectorAll('#filters select[data-fk]')].map(s => [s.dataset.fk, s.value]);
       const q = norm((document.getElementById('fSearch') || {}).value || '');
       const ranges = {}, dates = {};
@@ -4963,7 +4977,7 @@
     function renderTable() {
       const cols = PROC.tableColumns; const th = document.querySelector('#tbl thead'), tb = document.querySelector('#tbl tbody');
       th.innerHTML = '<tr>' + cols.map(c => `<th data-k="${c.key}">${c.label}${sortKey === c.key ? `<span class="ar">${sortDir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('') + '</tr>';
-      th.querySelectorAll('th').forEach(h => h.onclick = () => { const k = h.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = -1; } render(); });
+      th.querySelectorAll('th').forEach(h => h.onclick = () => { const k = h.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = -1; } tableLimit = 200; renderTable(); });
       let rows = [...VIEW];
       if (sortKey) {
         rows.sort((a, b) => {
@@ -4971,13 +4985,18 @@
           if (typeof x === 'string') { x = x.toLowerCase(); y = String(y).toLowerCase(); return x < y ? -sortDir : x > y ? sortDir : 0; } return ((+x || 0) - (+y || 0)) * sortDir;
         });
       }
-      rows = rows.slice(0, 400);
+      const _total = rows.length;
+      rows = rows.slice(0, tableLimit);
       tb.innerHTML = rows.map((r, ri) => '<tr>' + cols.map(c => {
         const num = ['int', 'num2', 'util', 'sr'].includes(c.fmt);
         const val = c.fmt === 'sr' ? (ri + 1) : fmtCell(r[c.key], c.fmt);
         return `<td class="${num ? 'num' : ''}" data-label="${c.label}">${val}</td>`;
       }).join('') + '</tr>').join('');
-      if (VIEW.length > 400) tb.innerHTML += `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--hint);padding:14px">Showing first 400 of ${fmtN(VIEW.length)} — export for all.</td></tr>`;
+      if (_total > tableLimit) {
+        const _rem = _total - tableLimit;
+        tb.innerHTML += `<tr><td colspan="${cols.length}" style="text-align:center;padding:12px"><button class="btn btn-line" id="tblMore">Show ${fmtN(Math.min(400, _rem))} more \u00b7 ${fmtN(_rem)} remaining (export for all)</button></td></tr>`;
+        const _mb = document.getElementById('tblMore'); if (_mb) _mb.onclick = () => { tableLimit += 400; renderTable(); };
+      }
       document.getElementById('tableTitle').textContent = PROC.meta.name;
     }
 
