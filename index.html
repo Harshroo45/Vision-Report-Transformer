@@ -3496,7 +3496,7 @@
         key: c.key, label: c.label,
         fmt: c.type === 'sr' ? 'sr' : c.type === 'date' ? 'date' : c.type === 'num2' ? 'num2' : c.type === 'int' ? 'int' : 'text'
       }));
-      const filters = [{ key: 'month', label: 'Month / Year' }, { key: 'dept', label: 'Department', multi: true }, { key: 'client', label: 'Client' }];
+      const filters = [{ key: 'day', label: 'Day-wise (calendar)', type: 'calendar', from: 'start', to: 'close' }, { key: 'month', label: 'Month / Year' }, { key: 'dept', label: 'Department', multi: true }, { key: 'client', label: 'Client' }];
       return {
         meta: {
           name: 'P&M Rental Report', tagline: 'Daily equipment logsheet → utilisation & deployment summary → Upload ERP dump as it is.',
@@ -4695,7 +4695,7 @@
     })();
 
     /* ===================== APP SHELL ===================== */
-    let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {};
+    let CURRENT = null, PROC = null, RAW = [], VIEW = [], sortKey = null, sortDir = -1, chartObjs = [], msState = {}, calState = {};
 
     /* ===================== ROLE RIGHTS (RBAC) — client enforcement ===================== */
     // report_access on USER: undefined/null = unconfigured (all reports); array = explicit allowed keys. Admin always sees all.
@@ -4777,7 +4777,16 @@
     /* ----- filters (single + multi-select checkbox) ----- */
     function buildFilters() {
       const host = document.getElementById('filters'); const fs = PROC.filters || [];
+      calState = {};
       host.innerHTML = fs.map(f => {
+        if (f.type === 'calendar') {
+          calState[f.key] = new Set();
+          return `<div class="field"><label>${f.label}</label>
+        <div class="cal" data-fk="${f.key}" data-from="${f.from || f.key}" data-to="${f.to || ''}">
+          <button type="button" class="cal-btn" id="calbtn-${f.key}">📅 Select dates</button>
+          <div class="cal-panel"></div>
+        </div></div>`;
+        }
         if (f.type === 'daterange') {
           return `<div class="field"><label>${f.label}</label>
       <div class="rng"><input type="date" data-dr="${f.key}" data-b="lo"><span>–</span><input type="date" data-dr="${f.key}" data-b="hi"></div></div>`;
@@ -4818,6 +4827,71 @@
         ms.querySelector('[data-act=all]').onclick = () => { ms.querySelectorAll('input').forEach(cb => { cb.checked = true; msState[fk].add(cb.value); }); updateMsLabel(fk); applyFilters(); };
         ms.querySelector('[data-act=clear]').onclick = () => { ms.querySelectorAll('input').forEach(cb => cb.checked = false); msState[fk].clear(); updateMsLabel(fk); applyFilters(); };
       });
+      // calendars
+      host.querySelectorAll('.cal').forEach(cal => {
+        const btn = cal.querySelector('.cal-btn');
+        btn.onclick = e => { e.stopPropagation(); document.querySelectorAll('.cal').forEach(x => { if (x !== cal) x.classList.remove('open'); }); document.querySelectorAll('.ms.open').forEach(x => x.classList.remove('open')); cal.classList.toggle('open'); };
+        cal.querySelector('.cal-panel').onclick = e => e.stopPropagation();
+        buildCalendar(cal);
+      });
+    }
+    document.addEventListener('click', () => document.querySelectorAll('.cal.open').forEach(x => x.classList.remove('open')));
+    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function calApplicableSet(fromK, toK) {
+      const set = new Set();
+      RAW.forEach(r => {
+        const a = r[fromK], b = toK ? (r[toK] || r[fromK]) : r[fromK];
+        if (!(a instanceof Date)) return; const end = (b instanceof Date) ? b : a;
+        let d = new Date(a.getFullYear(), a.getMonth(), a.getDate()), guard = 0;
+        const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        while (d <= last && guard++ < 400) { set.add(dayKey(d)); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); }
+      });
+      return set;
+    }
+    function buildCalendar(cal) {
+      const fk = cal.dataset.fk, fromK = cal.dataset.from, toK = cal.dataset.to;
+      const applic = calApplicableSet(fromK, toK);
+      cal._applic = applic;
+      if (cal._year === undefined) {
+        // open on the latest applicable month
+        let latest = null; applic.forEach(k => { if (!latest || k > latest) latest = k; });
+        const base = latest ? latest.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+        cal._year = base[0]; cal._month = base[1] - 1;
+      }
+      renderCalendar(cal);
+    }
+    function renderCalendar(cal) {
+      const fk = cal.dataset.fk, panel = cal.querySelector('.cal-panel'), applic = cal._applic || new Set();
+      const y = cal._year, m = cal._month, MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const first = new Date(y, m, 1), startDow = first.getDay(), dim = new Date(y, m + 1, 0).getDate();
+      let cells = '';
+      for (let i = 0; i < startDow; i++) cells += `<span class="cal-d empty"></span>`;
+      for (let d = 1; d <= dim; d++) {
+        const key = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const ok = applic.has(key), sel = calState[fk] && calState[fk].has(key);
+        cells += `<span class="cal-d${ok ? '' : ' off'}${sel ? ' sel' : ''}" ${ok ? `data-day="${key}"` : ''}>${d}</span>`;
+      }
+      const selCount = calState[fk] ? calState[fk].size : 0;
+      panel.innerHTML = `
+        <div class="cal-hd"><button type="button" class="cal-nav" data-nav="-1">‹</button>
+          <b>${MN[m]} ${y}</b><button type="button" class="cal-nav" data-nav="1">›</button></div>
+        <div class="cal-dow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+        <div class="cal-grid">${cells}</div>
+        <div class="cal-ft"><span>${selCount ? selCount + ' day(s) selected' : 'No days selected'}</span>
+          <button type="button" class="cal-clear">Clear</button></div>`;
+      panel.querySelectorAll('.cal-nav').forEach(b => b.onclick = ev => { ev.stopPropagation(); let mm = cal._month + (+b.dataset.nav); let yy = cal._year; if (mm < 0) { mm = 11; yy--; } if (mm > 11) { mm = 0; yy++; } cal._month = mm; cal._year = yy; renderCalendar(cal); });
+      panel.querySelectorAll('.cal-d[data-day]').forEach(dc => dc.onclick = ev => {
+        ev.stopPropagation(); const k = dc.dataset.day; const set = calState[fk];
+        if (set.has(k)) set.delete(k); else set.add(k);
+        dc.classList.toggle('sel'); updateCalLabel(fk);
+        panel.querySelector('.cal-ft span').textContent = set.size ? set.size + ' day(s) selected' : 'No days selected';
+        applyFilters();
+      });
+      panel.querySelector('.cal-clear').onclick = ev => { ev.stopPropagation(); calState[fk].clear(); renderCalendar(cal); updateCalLabel(fk); applyFilters(); };
+    }
+    function updateCalLabel(fk) {
+      const n = calState[fk] ? calState[fk].size : 0;
+      const b = document.getElementById('calbtn-' + fk); if (b) b.textContent = n ? `📅 ${n} day${n > 1 ? 's' : ''} selected` : '📅 Select dates';
     }
     function updateMsLabel(fk) {
       const f = (PROC.filters || []).find(x => x.key === fk); const n = msState[fk].size;
@@ -4834,6 +4908,19 @@
       VIEW = RAW.filter(r => {
         for (const [k, v] of sels) { if (v && String(r[k]) !== v) return false; }
         for (const k of Object.keys(msState)) { const set = msState[k]; if (set.size && !set.has(String(r[k]))) return false; }
+        for (const k of Object.keys(calState)) {
+          const set = calState[k]; if (!set || !set.size) continue;
+          const f = (PROC.filters || []).find(x => x.key === k); if (!f) continue;
+          const fromK = f.from || k, toK = f.to || k;
+          const a = r[fromK], b = toK ? (r[toK] || r[fromK]) : r[fromK];
+          if (!(a instanceof Date)) return false;
+          const lo = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+          const end = (b instanceof Date) ? b : a;
+          const hi = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59).getTime();
+          let hit = false;
+          for (const ds of set) { const p = ds.split('-').map(Number); const t = new Date(p[0], p[1] - 1, p[2], 12).getTime(); if (t >= lo && t <= hi) { hit = true; break; } }
+          if (!hit) return false;
+        }
         for (const k in ranges) { const { lo, hi } = ranges[k]; const v = +r[k] || 0; if (lo != null && v < lo) return false; if (hi != null && v > hi) return false; }
         for (const k in dates) { const { lo, hi } = dates[k]; const v = r[k]; if (lo && (!v || v < lo)) return false; if (hi && (!v || v > new Date(hi.getTime() + 864e5 - 1))) return false; }
         if (q && PROC.searchKeys) { if (!norm(PROC.searchKeys.map(k => r[k]).join(' ')).includes(q)) return false; }
@@ -4983,7 +5070,7 @@
     }
 
     function reset() {
-      RAW = []; VIEW = []; sortKey = null; msState = {}; chartObjs.forEach(c => c && c.destroy()); chartObjs = []; setMsg('');
+      RAW = []; VIEW = []; sortKey = null; msState = {}; calState = {}; chartObjs.forEach(c => c && c.destroy()); chartObjs = []; setMsg('');
       document.getElementById('dashView').style.display = 'none';
       document.getElementById('uploadView').style.display = CURRENT ? 'block' : 'none';
       document.getElementById('file').value = '';
@@ -5142,11 +5229,14 @@
         triggers.forEach(t => cleaned = cleaned.replace(new RegExp('(^| )' + t.replace(/ /g, ' ') + '( |$)', 'g'), ' '));
         cleaned = cleaned.replace(/\b(details?|designation|department|dept|info|information|please|the|of|a|an|is|id|name|profile|contact)\b/g, ' ').replace(/\s+/g, ' ').trim();
         if (!cleaned) return null;
+        // Harshal & Sandeep resolve to their full detail cards (like any employee, plus contact)
+        if (/\bharshal\b/.test(cleaned)) return { special: 'harshal', q: 'harshal' };
+        if (/\bsandeep\b/.test(cleaned)) return { special: 'sandeep', q: 'sandeep' };
         const qt = cleaned.split(' ').filter(w => w.length >= 2);
         if (!qt.length) return null;
-        // reserved persona names + ambiguous stop words must not trigger an employee lookup when typed alone
+        // reserved persona name (the bot itself) must not trigger an employee lookup when typed alone
         if (qt.length === 1) {
-          if (qt[0] === 'harshal' || qt[0] === 'sandeep' || qt[0] === 'hary') return null;
+          if (qt[0] === 'hary') return null;
           if (EMP_STOP.has(qt[0]) || qt[0].length < 3) return null;
         }
         let m = EMP.filter(e => e.full.includes(' ' + cleaned + ' ') || (cleaned.length >= 4 && e.full.includes(cleaned)));
@@ -5158,7 +5248,17 @@
         return m.length ? { matches: m, q: cleaned } : null;
       }
       function empCard(e) { return `Here are the details I found \uD83D\uDC47\n**${e.name}**\n\u2022 **Employee ID:** ${e.id || '\u2014'}\n\u2022 **Designation:** ${e.desig || '\u2014'}\n\u2022 **Department:** ${e.dept || '\u2014'}`; }
+      // Key people — shown with full details (like any employee) plus their contact info
+      const KEYPEOPLE = {
+        harshal: { name: 'Mr. Harshal Ganapati Khadatare', id: '21686', desig: 'Data Engineer', dept: 'IT', email: 'itsupport@visioninfraindia.com', phone: '+91 90757 68742', note: 'Developer of this Report Analyzer platform.' },
+        sandeep: { name: 'Mr. Sandeep Patil', id: '\u2014', desig: 'Manager', dept: 'P&M / Audit', email: 'pnm_audit@visioninfraindia.com', phone: '+91 89566 67459', note: 'Manager \u2014 guides & supports the reporting platform.' }
+      };
+      function keyCard(k) {
+        const p = KEYPEOPLE[k]; if (!p) return '';
+        return `Here are the details I found \uD83D\uDC47\n**${p.name}**\n\u2022 **Employee ID:** ${p.id}\n\u2022 **Designation:** ${p.desig}\n\u2022 **Department:** ${p.dept}\n\u2022 **Email:** <a href="mailto:${p.email}">${p.email}</a>\n\u2022 **Phone:** ${p.phone}\n_${p.note}_`;
+      }
       function empAnswer(res) {
+        if (res.special) return keyCard(res.special);
         const m = res.matches;
         if (m.length === 1) return empCard(m[0]);
         if (m.length <= 8) return `I found **${m.length} employees** matching that name. Which one do you mean?\n` + m.map(e => `\u2022 **${e.name}** \u2014 ${e.desig || 'staff'}, ${e.dept || '\u2014'} (ID ${e.id})`).join('\n') + `\nType the **full name** or **Employee ID** and I'll pull up the full details.`;
@@ -5735,6 +5835,30 @@
     .no-reports .nr-ic { font-size: 46px; margin-bottom: 12px; }
     .no-reports h3 { margin: 0 0 6px; color: #163a5c; font-size: 18px; }
     .no-reports p { margin: 0; font-size: 13.5px; line-height: 1.6; }
+  </style>
+  <style>
+    /* ===== Day-wise calendar filter ===== */
+    .cal { position: relative; }
+    .cal-btn { width: 100%; text-align: left; padding: 9px 12px; border: 1px solid #d3ddea; border-radius: 10px; background: #fff; font: inherit; font-size: 13px; color: #1f3a56; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+    .cal-btn:hover { border-color: #9dbde6; }
+    .cal.open .cal-btn { border-color: #4f8ff7; box-shadow: 0 0 0 3px rgba(79, 143, 247, .15); }
+    .cal-panel { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; width: 268px; background: #fff; border: 1px solid #e1e9f3; border-radius: 14px; box-shadow: 0 18px 44px rgba(20, 40, 70, .22); padding: 12px; display: none; }
+    .cal.open .cal-panel { display: block; }
+    .cal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .cal-hd b { font-size: 13.5px; color: #163a5c; }
+    .cal-nav { width: 28px; height: 28px; border: 1px solid #e1e9f3; background: #f6f9fc; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1; color: #2f6db0; }
+    .cal-nav:hover { background: #eaf1fb; border-color: #b9d2f2; }
+    .cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+    .cal-dow span { text-align: center; font-size: 10.5px; font-weight: 700; color: #9aa8bb; padding: 3px 0; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .cal-d { text-align: center; padding: 7px 0; font-size: 12.5px; border-radius: 8px; color: #cfd7e2; cursor: default; user-select: none; }
+    .cal-d[data-day] { color: #26364d; cursor: pointer; background: #eef4fb; font-weight: 600; }
+    .cal-d[data-day]:hover { background: #d8e7fb; }
+    .cal-d.sel { background: linear-gradient(135deg, #4f8ff7, #2150aa) !important; color: #fff !important; box-shadow: 0 4px 10px rgba(33, 80, 170, .35); }
+    .cal-d.off, .cal-d.empty { background: transparent; }
+    .cal-ft { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 9px; border-top: 1px solid #eef2f7; font-size: 11.5px; color: #7a8aa0; }
+    .cal-clear { border: none; background: #f3f5f9; color: #b3261e; font-weight: 600; font-size: 11.5px; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
+    .cal-clear:hover { background: #fdeceb; }
   </style>
 </body>
 
